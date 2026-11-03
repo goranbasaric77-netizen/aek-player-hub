@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.0";
+var VERSION = "1.1";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -30,6 +30,7 @@ var SHEETS = {
 
 function setup() {
   var ss = book();
+  try { ss.setSpreadsheetTimeZone("Europe/Athens"); } catch (e) {}
   Object.keys(SHEETS).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
     if (sh.getLastRow() === 0) {
@@ -144,7 +145,7 @@ function auth(body) {
   if (!p) return { ok: false, error: "player" };
   if (String(p.pin) !== pin) return { ok: false, error: "pin" };
   var token = Utilities.getUuid();
-  sheet("Tokens").appendRow([token, id, new Date()]);
+  sheet("Tokens").appendRow([token, id, new Date().toISOString()]);
   return { ok: true, token: token, player: id, name: p.name, role: p.role || "player" };
 }
 
@@ -205,7 +206,8 @@ function stateFrom(mine) {
 }
 
 function hhmm(ts) {
-  var d = ts instanceof Date ? ts : new Date(ts);
+  var d = ts instanceof Date ? ts : new Date(String(ts));
+  if (isNaN(d.getTime())) return "";
   return Utilities.formatDate(d, "Europe/Athens", "HH:mm");
 }
 
@@ -217,7 +219,7 @@ function logEvents(who, body) {
   var sh = sheet("Log");
   var device = String(body.device || "").slice(0, 60);
   var out = ev.slice(0, 200).map(function (e) {
-    return [new Date(e.ts || Date.now()), String(e.date || dayKey()), who.id, String(e.type || ""), String(e.key === undefined ? "" : e.key),
+    return [new Date(e.ts || Date.now()).toISOString(), String(e.date || dayKey()), who.id, String(e.type || ""), String(e.key === undefined ? "" : e.key),
             typeof e.value === "object" ? JSON.stringify(e.value) : String(e.value === undefined ? "" : e.value), device];
   });
   sh.getRange(sh.getLastRow() + 1, 1, out.length, SHEETS.Log.length).setValues(out);
