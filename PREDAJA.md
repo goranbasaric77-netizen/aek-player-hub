@@ -69,6 +69,14 @@ Plan red = kolone lista Plan (vidi SHEETS u Code.gs); `gym_json` i `mobility_jso
   staff tabela uživo, otvaranje igrača, igrač bez plana („Plan not published yet").
 - Most testiran na pravim GPS podacima (02.11: 16 igrača + 14 rezultata; 03.11: 26 igrača).
 
+## Živi zadnji deo (napravljeno 04.11.2026)
+
+- Google tabela „AEK Player Hub" na goranbasaric77@gmail.com: https://docs.google.com/spreadsheets/d/16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw/edit
+- Apps Script: samostalan projekat (nije vezan za tabelu), Code.gs ima `SHEET_ID` i otvara tabelu po ID-u.
+  Editor: https://script.google.com/home (projekat „Untitled project", slobodno preimenovati).
+- Web app URL stoji u `config.js`. Posle izmene Code.gs: Deploy > Manage deployments > olovka > New version > Deploy (URL ostaje isti).
+- List Players ima probne PIN-ove iz `setup()`; Goran ih menja i dodaje ostale igrače (id kao u ROSTER).
+
 ## Šta Goran radi sam (ne može agent)
 
 1. Google tabela + Apps Script po `backend/UPUTSTVO.md`, PIN-ovi igrača na listu Players.

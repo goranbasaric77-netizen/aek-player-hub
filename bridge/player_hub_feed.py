@@ -187,19 +187,20 @@ def build(data, date, focus_default=None):
             if sub:
                 break
         if not sub:
-            sub = "%s. Targets are a share of your own match reference." % MODE_LABEL.get(tip, tip.title() or "Training")
+            sub = "Day off. Sleep, eat well, walk. Your check-in still counts." if (tip in ("OFF", "DAY OFF")) else "%s. Targets are a share of your own match reference." % MODE_LABEL.get(tip, tip.title() or "Training")
         gym = gym_for(sessions, gym_name_of.get(name, name.upper()), date)
         if not gym and r.get("tip_gym"):
             gym = {"title": r["tip_gym"].strip(), "slots": []}
+        off = tip in ("OFF", "DAY OFF") or (not td and not hsr and not spr and not r.get("tip_gym"))
         plan.append({
             "date": date, "player": pid,
-            "day_type": "%s · Training %s" % (r.get("md", "").strip(), t_train),
+            "day_type": "%s · %s" % (r.get("md", "").strip(), "Day off" if off else ("Match " + t_train if tip == "MATCH" else "Training " + t_train)),
             "mode_label": MODE_LABEL.get(tip, tip.title() or "Training"),
             "sub": sub, "focus": focus,
             "pitch_td": int(td) if td else "", "pitch_hsr": int(hsr) if hsr else "", "pitch_spr": int(spr) if spr else "",
             "cap_pct": cap_pct, "speed_goal": speed_goal,
             "speed_work": "Top speed exposure in the session" if speed_goal else "",
-            "act_time": minus_minutes(t_train, 30), "act_group": "Group activation with the team", "act_indiv": "",
+            "act_time": "" if off else minus_minutes(t_train, 30), "act_group": "" if off else "Group activation with the team", "act_indiv": "",
             "mobility_json": "", "gym_json": gym or "",
             "ref_td": int(ref_td) if ref_td else "", "ref_hsr": int(ref_hsr) if ref_hsr else "", "ref_spr": int(ref_spr) if ref_spr else "",
             "ref_vmax": ref_v or "", "speed_days": speed_days, "last_speed": last_speed,
