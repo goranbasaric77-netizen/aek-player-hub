@@ -1,0 +1,296 @@
+/**
+ * AEK Player Hub · zadnji deo (Google Apps Script + Google Sheet)
+ *
+ * Jedna tabela, pet listova: Players, Plan, Results, Log, Tokens (+ Today za staff pregled).
+ * App (index.html) salje POST zahteve kao text/plain JSON, ovaj skript odgovara JSON-om.
+ *
+ * Prvi put: pokreni funkciju setup() iz editora (Run > setup). Ona pravi listove i zaglavlja
+ * i upisuje probne igrace. Posle toga: Deploy > New deployment > Web app,
+ * Execute as: Me, Who has access: Anyone. Kopiraj URL web app-a u config.js u hub folderu.
+ *
+ * Verzija: 1.0 (04.11.2026)
+ */
+
+var VERSION = "1.0";
+var SHEETS = {
+  Players: ["id", "name", "pin", "role", "active"],
+  Plan: ["date", "player", "day_type", "mode_label", "sub", "focus", "pitch_td", "pitch_hsr", "pitch_spr", "cap_pct", "speed_goal", "speed_work",
+         "act_time", "act_group", "act_indiv", "mobility_json", "gym_json", "ref_td", "ref_hsr", "ref_spr", "ref_vmax", "speed_days", "last_speed", "last_min"],
+  Results: ["date", "player", "td", "hsr", "spr", "vmax"],
+  Log: ["ts", "date", "player", "type", "key", "value", "device"],
+  Tokens: ["token", "player", "created"],
+  Today: ["player", "name", "opened", "last_open", "checkin_at", "readiness", "sleep_h", "sore", "note", "gym_sets_done", "mobility_done", "focus_read"]
+};
+
+/* ------------------------------------------------------------------ setup */
+
+function setup() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  Object.keys(SHEETS).forEach(function (name) {
+    var sh = ss.getSheetByName(name) || ss.insertSheet(name);
+    if (sh.getLastRow() === 0) {
+      sh.appendRow(SHEETS[name]);
+      sh.getRange(1, 1, 1, SHEETS[name].length).setFontWeight("bold");
+      sh.setFrozenRows(1);
+    }
+  });
+  var pl = ss.getSheetByName("Players");
+  if (pl.getLastRow() === 1) {
+    // Probni spisak. PIN-ove promeni ovde u tabeli, app ih cita odavde.
+    [
+      ["__staff", "Performance staff", "2468", "staff", 1],
+      ["koita", "Abubakary Koita", "1111", "player", 1],
+      ["pilios", "Stavros Pilios", "2222", "player", 1],
+      ["majer", "Lovro Majer", "3333", "player", 1],
+      ["gacinovic", "Mijat Gacinovic", "4444", "player", 1]
+    ].forEach(function (r) { pl.appendRow(r); });
+  }
+  var first = ss.getSheets()[0];
+  if (first.getName() !== "Players" && first.getLastRow() === 0) ss.deleteSheet(first);
+  SpreadsheetApp.getUi().alert("AEK Player Hub: listovi su spremni. Sledeci korak je Deploy > New deployment > Web app.");
+}
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu("AEK Hub")
+    .addItem("Osvezi Today (staff pregled)", "refreshToday")
+    .addItem("Setup (prvi put)", "setup")
+    .addToUi();
+}
+
+/* ------------------------------------------------------------------ http */
+
+function doGet(e) {
+  return out({ ok: true, service: "aek-player-hub", version: VERSION, time: new Date().toISOString() });
+}
+
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    var body = {};
+    try { body = JSON.parse(e.postData.contents || "{}"); } catch (err) { return out({ ok: false, error: "bad_json" }); }
+    var a = body.action;
+    if (a === "ping") return out({ ok: true, version: VERSION });
+    if (a === "auth") return out(auth(body));
+    if (a === "feed") return out(feed(body));
+    var who = whoIs(body.token);
+    if (!who) return out({ ok: false, error: "auth" });
+    if (a === "today") return out(today(who, body));
+    if (a === "log") return out(logEvents(who, body));
+    if (a === "team") return out(team(who, body));
+    return out({ ok: false, error: "unknown_action" });
+  } catch (err) {
+    return out({ ok: false, error: String(err && err.message || err) });
+  } finally {
+    try { lock.releaseLock(); } catch (e2) {}
+  }
+}
+
+function out(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ------------------------------------------------------------------ helpers */
+
+function sheet(name) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName(name) || ss.insertSheet(name);
+}
+
+function rows(name) {
+  var sh = sheet(name);
+  var n = sh.getLastRow();
+  if (n < 2) return [];
+  var head = SHEETS[name];
+  var vals = sh.getRange(2, 1, n - 1, head.length).getValues();
+  return vals.map(function (r) {
+    var o = {};
+    head.forEach(function (h, i) { o[h] = r[i]; });
+    return o;
+  });
+}
+
+function dayKey(d) {
+  return Utilities.formatDate(d || new Date(), "Europe/Athens", "yyyy-MM-dd");
+}
+
+function cellDate(v) {
+  if (v instanceof Date) return dayKey(v);
+  return String(v || "").slice(0, 10);
+}
+
+function num(v) {
+  if (v === "" || v === null || v === undefined) return null;
+  var n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+function jsonOrNull(v) {
+  if (!v) return null;
+  try { return JSON.parse(v); } catch (e) { return null; }
+}
+
+/* ------------------------------------------------------------------ auth */
+
+function auth(body) {
+  var id = String(body.player || "").trim();
+  var pin = String(body.pin || "").trim();
+  var p = rows("Players").filter(function (r) { return String(r.id) === id && String(r.active) !== "0" && r.active !== false; })[0];
+  if (!p) return { ok: false, error: "player" };
+  if (String(p.pin) !== pin) return { ok: false, error: "pin" };
+  var token = Utilities.getUuid();
+  sheet("Tokens").appendRow([token, id, new Date()]);
+  return { ok: true, token: token, player: id, name: p.name, role: p.role || "player" };
+}
+
+function whoIs(token) {
+  if (!token) return null;
+  var t = rows("Tokens").filter(function (r) { return r.token === token; })[0];
+  if (!t) return null;
+  var p = rows("Players").filter(function (r) { return String(r.id) === String(t.player); })[0];
+  if (!p) return null;
+  return { id: String(p.id), name: p.name, role: p.role || "player" };
+}
+
+/* ------------------------------------------------------------------ today (player) */
+
+function today(who, body) {
+  var date = String(body.date || dayKey());
+  var plan = rows("Plan").filter(function (r) { return cellDate(r.date) === date && String(r.player) === who.id; }).pop() || null;
+  var result = rows("Results").filter(function (r) { return cellDate(r.date) === date && String(r.player) === who.id; }).pop() || null;
+  var log = rows("Log").filter(function (r) { return cellDate(r.date) === date; });
+  var mine = log.filter(function (r) { return String(r.player) === who.id; });
+  var checkedIn = {};
+  log.forEach(function (r) { if (r.type === "checkin") checkedIn[r.player] = 1; });
+  var nPlayers = rows("Players").filter(function (r) { return r.role !== "staff" && String(r.active) !== "0"; }).length;
+  return {
+    ok: true, date: date, player: who.id, name: who.name,
+    plan: plan ? planOut(plan) : null,
+    result: result ? { td: num(result.td), hsr: num(result.hsr), spr: num(result.spr), vmax: num(result.vmax) } : null,
+    state: stateFrom(mine),
+    team: { total: nPlayers, checkedIn: Object.keys(checkedIn).length }
+  };
+}
+
+function planOut(r) {
+  return {
+    dayType: r.day_type || "", modeLabel: r.mode_label || "", sub: r.sub || "", focus: r.focus || "",
+    pitch: num(r.pitch_td) !== null ? { td: num(r.pitch_td), hsr: num(r.pitch_hsr), spr: num(r.pitch_spr), capPct: num(r.cap_pct), speedGoal: num(r.speed_goal), speedWork: r.speed_work || "" } : null,
+    activation: { time: r.act_time ? String(r.act_time) : "", group: r.act_group || "", indiv: String(r.act_indiv || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean) },
+    mobility: jsonOrNull(r.mobility_json), gym: jsonOrNull(r.gym_json),
+    ref: { td: num(r.ref_td), hsr: num(r.ref_hsr), spr: num(r.ref_spr), vmax: num(r.ref_vmax) },
+    speedDays: num(r.speed_days), lastSpeed: num(r.last_speed), lastMin: num(r.last_min)
+  };
+}
+
+/* Rebuild a player's state for one day from their log rows (last value wins). */
+function stateFrom(mine) {
+  var st = { checkin: null, gym: {}, mob: {}, ack: false, opened: false, lastOpen: null, note: "" };
+  mine.sort(function (a, b) { return new Date(a.ts) - new Date(b.ts); });
+  mine.forEach(function (r) {
+    var t = r.type;
+    if (t === "open") { st.opened = true; st.lastOpen = hhmm(r.ts); }
+    else if (t === "checkin") { st.checkin = jsonOrNull(r.value); st.opened = true; }
+    else if (t === "gym") { st.gym[String(r.key)] = Number(r.value) || 0; }
+    else if (t === "mob") { st.mob[String(r.key)] = Number(r.value) ? 1 : 0; }
+    else if (t === "ack") { st.ack = !!Number(r.value); }
+    else if (t === "note") { st.note = String(r.value || ""); }
+  });
+  return st;
+}
+
+function hhmm(ts) {
+  var d = ts instanceof Date ? ts : new Date(ts);
+  return Utilities.formatDate(d, "Europe/Athens", "HH:mm");
+}
+
+/* ------------------------------------------------------------------ log */
+
+function logEvents(who, body) {
+  var ev = body.events || [];
+  if (!ev.length) return { ok: true, n: 0 };
+  var sh = sheet("Log");
+  var device = String(body.device || "").slice(0, 60);
+  var out = ev.slice(0, 200).map(function (e) {
+    return [new Date(e.ts || Date.now()), String(e.date || dayKey()), who.id, String(e.type || ""), String(e.key === undefined ? "" : e.key),
+            typeof e.value === "object" ? JSON.stringify(e.value) : String(e.value === undefined ? "" : e.value), device];
+  });
+  sh.getRange(sh.getLastRow() + 1, 1, out.length, SHEETS.Log.length).setValues(out);
+  return { ok: true, n: out.length };
+}
+
+/* ------------------------------------------------------------------ team (staff) */
+
+function team(who, body) {
+  if (who.role !== "staff") return { ok: false, error: "staff_only" };
+  var date = String(body.date || dayKey());
+  var players = rows("Players").filter(function (r) { return r.role !== "staff" && String(r.active) !== "0"; });
+  var log = rows("Log").filter(function (r) { return cellDate(r.date) === date; });
+  var plans = {};
+  rows("Plan").filter(function (r) { return cellDate(r.date) === date; }).forEach(function (r) { plans[String(r.player)] = planOut(r); });
+  var results = {};
+  rows("Results").filter(function (r) { return cellDate(r.date) === date; }).forEach(function (r) { results[String(r.player)] = { td: num(r.td), hsr: num(r.hsr), spr: num(r.spr), vmax: num(r.vmax) }; });
+  var out = players.map(function (p) {
+    var mine = log.filter(function (r) { return String(r.player) === String(p.id); });
+    return { player: String(p.id), name: p.name, state: stateFrom(mine), plan: plans[String(p.id)] || null, result: results[String(p.id)] || null };
+  });
+  return { ok: true, date: date, rows: out };
+}
+
+/* Staff sheet "Today": one row per player, refreshed from the menu. */
+function refreshToday() {
+  var date = dayKey();
+  var players = rows("Players").filter(function (r) { return r.role !== "staff" && String(r.active) !== "0"; });
+  var log = rows("Log").filter(function (r) { return cellDate(r.date) === date; });
+  var sh = sheet("Today");
+  sh.clearContents();
+  sh.appendRow(SHEETS.Today);
+  sh.getRange(1, 1, 1, SHEETS.Today.length).setFontWeight("bold");
+  var lines = players.map(function (p) {
+    var st = stateFrom(log.filter(function (r) { return String(r.player) === String(p.id); }));
+    var c = st.checkin || {};
+    var gymSets = Object.keys(st.gym).reduce(function (a, k) { return a + (st.gym[k] || 0); }, 0);
+    var mob = Object.keys(st.mob).filter(function (k) { return st.mob[k]; }).length;
+    return [p.id, p.name, st.opened ? "yes" : "no", st.lastOpen || "", c.at || "", c.at ? readiness(c) : "", c.hours || "",
+            (c.zones || []).join(", "), c.note || "", gymSets, mob, st.ack ? "yes" : ""];
+  });
+  if (lines.length) sh.getRange(2, 1, lines.length, SHEETS.Today.length).setValues(lines);
+  SpreadsheetApp.getUi().alert("Today osvezen za " + date + " (" + lines.length + " igraca).");
+}
+
+/* Same formula as in the app: five 1-5 scales (80%) + sleep hours (20%). */
+function readiness(c) {
+  var keys = ["sleepq", "fatigue", "soreness", "stress", "mood"];
+  var s = keys.reduce(function (a, k) { return a + (Number(c[k]) || 3); }, 0);
+  var sleepAdj = Math.max(0, Math.min(1, ((Number(c.hours) || 0) - 5) / 3));
+  return Math.round(((s - 5) / 20 * 0.8 + sleepAdj * 0.2) * 100);
+}
+
+/* ------------------------------------------------------------------ feed (bridge from GPS 2.5) */
+
+function feed(body) {
+  var staff = rows("Players").filter(function (r) { return r.role === "staff"; })[0];
+  if (!staff || String(body.key || "") !== String(staff.pin)) return { ok: false, error: "key" };
+  var nPlan = upsert("Plan", body.plan || [], ["date", "player"]);
+  var nRes = upsert("Results", body.results || [], ["date", "player"]);
+  return { ok: true, plan: nPlan, results: nRes };
+}
+
+/* Upsert rows (objects keyed by header name) into a sheet by key columns. */
+function upsert(name, items, keys) {
+  if (!items.length) return 0;
+  var sh = sheet(name);
+  var head = SHEETS[name];
+  var existing = rows(name);
+  var index = {};
+  existing.forEach(function (r, i) { index[keys.map(function (k) { return k === "date" ? cellDate(r[k]) : String(r[k]); }).join("|")] = i + 2; });
+  var appends = [];
+  items.forEach(function (it) {
+    var line = head.map(function (h) { var v = it[h]; return v === undefined || v === null ? "" : (typeof v === "object" ? JSON.stringify(v) : v); });
+    var k = keys.map(function (kk) { return String(it[kk]); }).join("|");
+    if (index[k]) sh.getRange(index[k], 1, 1, head.length).setValues([line]);
+    else appends.push(line);
+  });
+  if (appends.length) sh.getRange(sh.getLastRow() + 1, 1, appends.length, head.length).setValues(appends);
+  return items.length;
+}
