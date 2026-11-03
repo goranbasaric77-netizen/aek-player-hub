@@ -12,6 +12,10 @@
  */
 
 var VERSION = "1.0";
+/* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
+var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
+function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
+function say(msg) { Logger.log(msg); try { SpreadsheetApp.getUi().alert(msg); } catch (e) {} }
 var SHEETS = {
   Players: ["id", "name", "pin", "role", "active"],
   Plan: ["date", "player", "day_type", "mode_label", "sub", "focus", "pitch_td", "pitch_hsr", "pitch_spr", "cap_pct", "speed_goal", "speed_work",
@@ -25,7 +29,7 @@ var SHEETS = {
 /* ------------------------------------------------------------------ setup */
 
 function setup() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = book();
   Object.keys(SHEETS).forEach(function (name) {
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
     if (sh.getLastRow() === 0) {
@@ -47,10 +51,11 @@ function setup() {
   }
   var first = ss.getSheets()[0];
   if (first.getName() !== "Players" && first.getLastRow() === 0) ss.deleteSheet(first);
-  SpreadsheetApp.getUi().alert("AEK Player Hub: listovi su spremni. Sledeci korak je Deploy > New deployment > Web app.");
+  say("AEK Player Hub: listovi su spremni. Sledeci korak je Deploy > New deployment > Web app.");
 }
 
 function onOpen() {
+  if (SHEET_ID) return; // meni postoji samo kad je skript vezan za tabelu
   SpreadsheetApp.getUi().createMenu("AEK Hub")
     .addItem("Osvezi Today (staff pregled)", "refreshToday")
     .addItem("Setup (prvi put)", "setup")
@@ -93,7 +98,7 @@ function out(obj) {
 /* ------------------------------------------------------------------ helpers */
 
 function sheet(name) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = book();
   return ss.getSheetByName(name) || ss.insertSheet(name);
 }
 
@@ -255,7 +260,7 @@ function refreshToday() {
             (c.zones || []).join(", "), c.note || "", gymSets, mob, st.ack ? "yes" : ""];
   });
   if (lines.length) sh.getRange(2, 1, lines.length, SHEETS.Today.length).setValues(lines);
-  SpreadsheetApp.getUi().alert("Today osvezen za " + date + " (" + lines.length + " igraca).");
+  say("Today osvezen za " + date + " (" + lines.length + " igraca).");
 }
 
 /* Same formula as in the app: five 1-5 scales (80%) + sleep hours (20%). */

@@ -1,4 +1,3 @@
 // AEK Player Hub · veza ka zadnjem delu.
-// Upisi URL Apps Script web app-a (Deploy > Manage deployments > Web app URL) izmedju navodnika.
-// Prazan url = app radi kao skica sa demo podacima, nista se ne salje.
-window.AEK_SYNC = { url: "" };
+// URL Apps Script web app-a (Deploy > Manage deployments > Web app URL). Prazan url = skica sa demo podacima.
+window.AEK_SYNC = { url: "https://script.google.com/macros/s/AKfycbwEi7pXd_iyMOXhOzefwZEDpbg3oSLSeDkqgfCQY-goW-TYax8Ze2yoy4YrehGDBfeRag/exec" };
