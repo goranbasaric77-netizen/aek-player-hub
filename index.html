@@ -1169,7 +1169,7 @@ function staffHeader(){document.getElementById("h-name").textContent="Performanc
   const av=document.getElementById("h-av");av.classList.remove("photo");av.classList.add("crestav");av.innerHTML=`<img src="crest.webp" alt="">`;
   const sv=document.getElementById("s-av");sv.classList.remove("photo");sv.classList.add("crestav");sv.innerHTML=`<img src="crest.webp" alt="">`;
   document.getElementById("s-name").textContent="Staff";document.getElementById("s-pos").textContent="Performance";document.getElementById("h-streakwrap").classList.add("hidden")}
-function enterStaff(){P=null;draft=null;document.body.dataset.staff="1";document.body.dataset.noplayer="1";save("last","__staff");
+function enterStaff(){P=null;draft=null;TEAMDATA=null;document.body.dataset.staff="1";document.body.dataset.noplayer="1";save("last","__staff");
   document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("staffbar").classList.add("hidden");staffHeader();show("team")}
 function leaveStaff(){delete document.body.dataset.staff;delete document.body.dataset.noplayer;document.getElementById("staffbar").classList.add("hidden");document.getElementById("h-streakwrap").classList.remove("hidden")}
 function hasLocalToday(st){if(st.seeded===TK)return false;return !!(st.checkins[TK]||(st.gym[TK]&&Object.keys(st.gym[TK]).length)||(st.mob[TK]&&Object.keys(st.mob[TK]).length)||st.ack[TK])}
@@ -1199,7 +1199,7 @@ document.getElementById("sb-back").onclick=()=>{clearTimers();P=null;draft=null;
 function tr7(r){const cells=r.p.hist.map(v=>perfectDay(v)?"p":v.some(x=>x===0)?"m":"h");const today=r.closed?"p":!r.opened?"m":"h";
   return `<span class="tr7">${cells.map(c=>`<i class="${c}"></i>`).join("")}<i class="${today} t"></i></span>`}
 function renderTeam(){
-  const el=document.getElementById("v-team");if(LIVE&&!TEAMDATA){el.innerHTML=`<div class="card"><div class="eyebrow">Team</div><h2 style="margin-top:6px">Loading today's rows…</h2><div class="muted small" style="margin-top:8px">Fetching every player's check-in and session from the hub.</div></div>`;loadTeam();return}const rows=teamRows();
+  const el=document.getElementById("v-team");if(LIVE&&(!TEAMDATA||(TEAMDATA.at&&Date.now()-TEAMDATA.at>120000))){el.innerHTML=`<div class="card"><div class="eyebrow">Team</div><h2 style="margin-top:6px">Loading today's rows…</h2><div class="muted small" style="margin-top:8px">Fetching every player's check-in and session from the hub.</div></div>`;loadTeam();return}const rows=teamRows();
   const nCI=rows.filter(r=>r.ci).length,nOpen=rows.filter(r=>r.opened).length,nPerf=rows.filter(r=>r.closed).length,nAtt=rows.filter(r=>r.att).length;
   const rd=rows.filter(r=>r.ready!=null);const avgR=rd.length?Math.round(rd.reduce((a,r)=>a+r.ready,0)/rd.length):null;
   const nGym=rows.filter(r=>r.vals[2]>=100).length,nAck=rows.filter(r=>r.ack).length;
