@@ -2,7 +2,7 @@
 // Only GET requests of this origin are cached; the Apps Script backend is never cached.
 // OneSignal push runs inside this same worker (one service worker per scope).
 try { importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"); } catch (e) { /* offline: caching still works */ }
-const CACHE = "aek-player-hub-2026-11-04i";
+const CACHE = "aek-player-hub-2026-11-04j";
 const FILES = ["./", "./index.html", "./config.js", "./manifest.webmanifest", "./crest.webp", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
