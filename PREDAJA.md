@@ -157,6 +157,11 @@ Pravilo: u živom režimu igrač vidi SAMO ono što stoji u GPS 2.5 motoru. Nema
   kad nova verzija preuzme, sam se jednom osveži. Oznaka verzije stoji ispod PIN-a na ekranu za prijavu
   („Version …“, menja se sa svakim izdanjem zajedno sa CACHE u sw.js). Kopija: `index_PRE_UPDATE_20261104.html`.
 
+- 04.11 18:00, verzija 2026-11-04l (Goranova odluka): svi grafici prate MIKROCIKLUS ponedeljak do nedelje, ne
+  poslednjih N dana. Prstenovi, teren done vs plan, gym, readiness: tekuća nedelja (W18, Mon 2 Nov to Sun 8 Nov),
+  budući dani prazni/bledi. Top speed: prethodna + tekuća nedelja (W17 + W18) sa crtom između. Weekly load stubovi
+  nose oznaku nedelje (W16, W17, W18). Broj nedelje se čita iz extra_json.week_label. Kopija: `index_PRE_MIKRO_20261104.html`.
+
 ## Šta Goran radi sam (ne može agent)
 
 1. Google tabela + Apps Script po `backend/UPUTSTVO.md`, PIN-ovi igrača na listu Players.
