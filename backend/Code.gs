@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.3";
+var VERSION = "1.4";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -86,6 +86,7 @@ function doPost(e) {
     if (a === "today") return out(today(who, body));
     if (a === "log") return out(logEvents(who, body));
     if (a === "team") return out(team(who, body));
+    if (a === "history") return out(history(who, body));
     return out({ ok: false, error: "unknown_action" });
   } catch (err) {
     return out({ ok: false, error: String(err && err.message || err) });
@@ -351,4 +352,99 @@ function setupReminders() {
   ScriptApp.newTrigger("sendMorningReminder").timeBased().atHour(8).nearMinute(30).everyDays(1)
     .inTimezone("Europe/Athens").create();
   say("Jutarnji podsetnik je zakazan svaki dan oko 08:30 (Atina).");
+}
+
+/* ------------------------------------------------------------------ history (Progress tab) */
+
+/* Last N days before `date` for one player: plan, GPS result and the day's state from the log.
+   A player gets their own history; staff can ask for any player with body.player. */
+function history(who, body) {
+  var pid = (who.role === "staff" && body.player) ? String(body.player) : who.id;
+  var n = Math.min(Math.max(Number(body.days) || 14, 1), 31);
+  var end = String(body.date || dayKey());
+  var endDate = Utilities.parseDate(end + " 12:00", "Europe/Athens", "yyyy-MM-dd HH:mm");
+  var dates = [], want = {};
+  for (var i = n; i >= 1; i--) {
+    var d = dayKey(new Date(endDate.getTime() - i * 86400000));
+    dates.push(d); want[d] = 1;
+  }
+  var plans = {}, results = {}, logs = {};
+  rows("Plan").forEach(function (r) { var d = cellDate(r.date); if (want[d] && String(r.player) === pid) plans[d] = planOut(r); });
+  rows("Results").forEach(function (r) { var d = cellDate(r.date); if (want[d] && String(r.player) === pid) results[d] = { td: num(r.td), hsr: num(r.hsr), spr: num(r.spr), vmax: num(r.vmax) }; });
+  rows("Log").forEach(function (r) { var d = cellDate(r.date); if (want[d] && String(r.player) === pid) (logs[d] = logs[d] || []).push(r); });
+  return { ok: true, player: pid, days: dates.map(function (d) {
+    return { date: d, plan: plans[d] || null, result: results[d] || null, state: stateFrom(logs[d] || []) };
+  }) };
+}
+
+/* ------------------------------------------------------------------ demo history (pilot preview) */
+
+var DEMO_PLAYERS = ["gacinovic", "majer", "relvas"];
+var DEMO_DEVICE = "demo-history";
+
+/* Simulated check-ins, focus reads and gym sets for the pilot players on past days that have a plan.
+   Plans and GPS results stay real (from GPS 2.5). Rows are tagged device "demo-history".
+   Remove them all with clearDemoHistory() before the real pilot starts. */
+function seedDemoHistory() {
+  clearDemoHistory();
+  var today = dayKey();
+  var out = [];
+  rows("Plan").forEach(function (r) {
+    var pid = String(r.player), d = cellDate(r.date);
+    if (DEMO_PLAYERS.indexOf(pid) < 0 || d >= today) return;
+    var rnd = seeded(pid + d);
+    var off = /day off/i.test(String(r.day_type) + " " + String(r.mode_label));
+    var hh = 7, mm = 35 + Math.floor(rnd() * 40);
+    if (mm >= 60) { hh = 8; mm -= 60; }
+    var at = (hh < 10 ? "0" : "") + hh + ":" + (mm < 10 ? "0" : "") + mm;
+    var ts = function (addMin) {
+      return Utilities.parseDate(d + " " + at, "Europe/Athens", "yyyy-MM-dd HH:mm").getTime() + (addMin || 0) * 60000;
+    };
+    var iso = function (addMin) { return new Date(ts(addMin)).toISOString(); };
+    if (rnd() < 0.93) out.push([iso(0), d, pid, "open", "today", "", DEMO_DEVICE]);
+    if (rnd() < (off ? 0.6 : 0.88)) {
+      var sc = function () { var x = rnd(); return x < 0.08 ? 2 : x < 0.35 ? 3 : x < 0.8 ? 4 : 5; };
+      var sore = rnd() < 0.12 ? ["L hamstring"] : (rnd() < 0.08 ? ["R calf"] : []);
+      var c = { hours: Math.round((6 + rnd() * 3) * 2) / 2, sleepq: sc(), fatigue: sc(), soreness: sore.length ? 2 : sc(), stress: sc(), mood: sc(), zones: sore, note: "", at: at };
+      out.push([iso(2), d, pid, "checkin", "", JSON.stringify(c), DEMO_DEVICE]);
+    }
+    if (!off && rnd() < 0.7) out.push([iso(3), d, pid, "ack", "", "1", DEMO_DEVICE]);
+    var g = jsonOrNull(r.gym_json);
+    if (g && g.slots && g.slots.length) {
+      var full = rnd() < 0.7;
+      g.slots.forEach(function (s) {
+        (s.ex || []).forEach(function (e, i) {
+          var sets = parseInt(e.d, 10) || 0;
+          var done = full ? sets : Math.floor(sets * (0.4 + rnd() * 0.6));
+          if (done > 0) out.push([iso(240 + i), d, pid, "gym", s.s + i, String(done), DEMO_DEVICE]);
+        });
+      });
+    }
+  });
+  if (out.length) {
+    var sh = sheet("Log");
+    sh.getRange(sh.getLastRow() + 1, 1, out.length, SHEETS.Log.length).setValues(out);
+  }
+  say("Demo istorija: " + out.length + " redova za " + DEMO_PLAYERS.join(", ") + ". Brisanje: clearDemoHistory.");
+}
+
+/* Deletes every Log row written by seedDemoHistory (device "demo-history"). Real player rows stay. */
+function clearDemoHistory() {
+  var sh = sheet("Log");
+  var n = sh.getLastRow();
+  if (n < 2) return;
+  var vals = sh.getRange(2, 1, n - 1, SHEETS.Log.length).getValues();
+  var keep = vals.filter(function (r) { return String(r[6]) !== DEMO_DEVICE; });
+  if (keep.length === vals.length) return;
+  sh.getRange(2, 1, n - 1, SHEETS.Log.length).clearContent();
+  if (keep.length) sh.getRange(2, 1, keep.length, SHEETS.Log.length).setValues(keep);
+  Logger.log("clearDemoHistory: obrisano " + (vals.length - keep.length) + " demo redova");
+}
+
+/* Small deterministic random generator (Park-Miller) so the demo looks the same every time it is seeded. */
+function seeded(text) {
+  var h = 7;
+  for (var i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 2147483647;
+  if (h <= 0) h += 2147483646;
+  return function () { h = (h * 48271) % 2147483647; return (h - 1) / 2147483646; };
 }

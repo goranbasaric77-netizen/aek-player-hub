@@ -72,6 +72,16 @@ def latest_plan_file(data):
     return files[-1]
 
 
+def plan_file_for(data, date):
+    """Plan nedelje koji sadrži dati datum (najnovija nedelja ima prednost). Za stare datume uzima W16, W17..."""
+    files = [f for f in glob.glob(os.path.join(data, "plan_kompletan_W*.csv")) if "prethodni" not in f and "_PRE_" not in f]
+    files.sort(key=lambda f: (int(re.search(r"_W(\d+)", f).group(1)), os.path.getmtime(f)), reverse=True)
+    for f in files:
+        if any(r.get("datum") == date for r in read_csv(f)):
+            return f
+    return latest_plan_file(data)
+
+
 def training_time(text):
     m = re.search(r"Trening\s+(\d{1,2}:\d{2})", text or "")
     return m.group(1) if m else "11:00"
@@ -107,7 +117,7 @@ def gym_for(sessions, gym_name, date):
 
 
 def build(data, date, focus_default=None):
-    plan_file = latest_plan_file(data)
+    plan_file = plan_file_for(data, date)
     if not plan_file:
         raise SystemExit("Nema plan_kompletan_W*.csv u " + data)
     plan_rows = [r for r in read_csv(plan_file) if r.get("datum") == date]
@@ -142,6 +152,24 @@ def build(data, date, focus_default=None):
             tip_dana[(r.get("datum", ""), r.get("grupa", ""))] = r.get("tip_dana", "")
 
     plan, results, skipped = [], [], []
+    minuti_dan = {}
+    for d in read_csv(os.path.join(data, "dnevni_niz.csv")):
+        if d.get("Datum") == date:
+            minuti_dan[d["Player"]] = minuti_dan.get(d["Player"], 0) + (num(d.get("Minutes")) or 0)
+    po_igracu = {}
+    for r in plan_rows:
+        po_igracu.setdefault(r.get("igrac", "").strip(), []).append(r)
+    izabrani = []
+    for ime, redovi in po_igracu.items():
+        if len(redovi) == 1:
+            izabrani.append(redovi[0])
+            continue
+        mec = [x for x in redovi if (x.get("tip_terena") or "").strip().upper() == "MATCH"]
+        ostali = [x for x in redovi if x not in mec]
+        igrao = minuti_dan.get(ime, 0) >= 45
+        izabrani.append((mec[0] if (igrao and mec) or not ostali else ostali[0]))
+    plan_rows = izabrani
+
     for r in plan_rows:
         name = r.get("igrac", "").strip()
         pid = NAME_TO_ID.get(name)
