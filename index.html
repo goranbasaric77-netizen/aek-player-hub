@@ -897,7 +897,7 @@ function pushInit(){if(!PUSH_ID||!LIVE||!location.protocol.startsWith("http"))re
   window.OneSignalDeferred=window.OneSignalDeferred||[];
   const s=document.createElement("script");s.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";s.defer=true;document.head.appendChild(s);
   OneSignalDeferred.push(async OS=>{try{
-    await OS.init({appId:PUSH_ID,safari_web_id:"web.onesignal.auto.50fac9c2-9f7f-49e4-88a1-4637f1759b35",serviceWorkerPath:"sw.js",serviceWorkerParam:{scope:location.pathname.replace(/[^/]*$/,"")},notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true});
+    await OS.init({appId:PUSH_ID,safari_web_id:"web.onesignal.auto.50fac9c2-9f7f-49e4-88a1-4637f1759b35",serviceWorkerPath:location.pathname.replace(/[^/]*$/,"").replace(/^\//,"")+"sw.js",serviceWorkerParam:{scope:location.pathname.replace(/[^/]*$/,"")},notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true});
     pushReady=true;if(P&&P.id&&P.id!=="__staff")await OS.login(P.id);
     OS.Notifications.addEventListener("permissionChange",()=>pushRefresh());pushRefresh()}catch(e){}})}
 function pushLogin(id){if(!pushReady||!id||id==="__staff")return;OneSignalDeferred.push(async OS=>{try{await OS.login(id)}catch(e){}})}
