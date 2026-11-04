@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.1";
+var VERSION = "1.2";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -38,6 +38,8 @@ function setup() {
       sh.getRange(1, 1, 1, SHEETS[name].length).setFontWeight("bold");
       sh.setFrozenRows(1);
     }
+    if (name === "Plan") sh.getRange("M:M").setNumberFormat("@");
+    if (name === "Log" || name === "Tokens") sh.getRange("A:A").setNumberFormat("@");
   });
   var pl = ss.getSheetByName("Players");
   if (pl.getLastRow() === 1) {
@@ -131,6 +133,14 @@ function num(v) {
   return isNaN(n) ? null : n;
 }
 
+/* Sheets turns "10:30" into a time value; give it back as HH:mm text. */
+function timeStr(v) {
+  if (v === "" || v === null || v === undefined) return "";
+  if (v instanceof Date) return Utilities.formatDate(v, book().getSpreadsheetTimeZone(), "HH:mm");
+  var m = String(v).match(/(\d{1,2}):(\d{2})/);
+  return m ? (m[1].length === 1 ? "0" + m[1] : m[1]) + ":" + m[2] : String(v);
+}
+
 function jsonOrNull(v) {
   if (!v) return null;
   try { return JSON.parse(v); } catch (e) { return null; }
@@ -182,7 +192,7 @@ function planOut(r) {
   return {
     dayType: r.day_type || "", modeLabel: r.mode_label || "", sub: r.sub || "", focus: r.focus || "",
     pitch: num(r.pitch_td) !== null ? { td: num(r.pitch_td), hsr: num(r.pitch_hsr), spr: num(r.pitch_spr), capPct: num(r.cap_pct), speedGoal: num(r.speed_goal), speedWork: r.speed_work || "" } : null,
-    activation: { time: r.act_time ? String(r.act_time) : "", group: r.act_group || "", indiv: String(r.act_indiv || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean) },
+    activation: { time: timeStr(r.act_time), group: r.act_group || "", indiv: String(r.act_indiv || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean) },
     mobility: jsonOrNull(r.mobility_json), gym: jsonOrNull(r.gym_json),
     ref: { td: num(r.ref_td), hsr: num(r.ref_hsr), spr: num(r.ref_spr), vmax: num(r.ref_vmax) },
     speedDays: num(r.speed_days), lastSpeed: num(r.last_speed), lastMin: num(r.last_min)
