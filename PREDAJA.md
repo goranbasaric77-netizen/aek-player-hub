@@ -59,6 +59,7 @@ POST na web app URL, telo JSON kao text/plain, odgovor JSON:
 - `{action:"log", token, events:[{ts, date, type, key, value}]}` types: open, checkin, gym, mob, ack
 - `{action:"team", token(staff), date}` -> `{ok, rows:[{player, name, state, plan, result}]}`
 - `{action:"feed", key(staff PIN), plan:[...], results:[...]}` -> upsert po (date, player)
+- `{action:"history", token, date, days, player?}` -> `{ok, player, days:[{date, plan, result, state}]}` (N dana pre `date`; staff šalje `player`, igrač dobija svoje)
 Plan red = kolone lista Plan (vidi SHEETS u Code.gs); `gym_json` i `mobility_json` su JSON u istom obliku kao P.gym / P.mobility.
 
 ## Šta je gotovo i provereno (04.11.2026)
@@ -92,6 +93,19 @@ Plan red = kolone lista Plan (vidi SHEETS u Code.gs); `gym_json` i `mobility_jso
   `setupReminders` (svaki dan oko 08:30 Europe/Athens, napravljen 04.11).
 - iPhone: obaveštenja rade samo kad je app dodat na početni ekran i otvoren odatle.
 
+## Istorija i Progress (04.11.2026)
+
+- Code.gs 1.4, web app verzija 4: akcija `history`. App je zove posle `today` (igrač) i kad staff otvori igrača;
+  Progress, traka 7 dana i spremnost tada crtaju prave dane. Keš u localStorage `aekhub2:hist:<id>`.
+- Referenca mosta je KAMP NEDELJA (W1_baza_kamp, nedeljni zbir), ne utakmica. Zato u živom režimu grafik
+  „Week vs your camp week" ima zone 0.8 do 1.3x, tekuća nedelja je siva („Week in progress"), a kartica rekorda je
+  „Top speed and camp week". Today merači pokazuju 100% = današnji cilj.
+- Most radi za bilo koji datum: `plan_file_for` traži plan nedelje koji sadrži datum (W16, W17...). Na dan meča
+  bira jedan red po igraču: MATCH ako je igrao 45+ minuta (dnevni_niz), inače dopunski trening.
+- Probna istorija: planovi i GPS za 21.10 do 03.11 su PRAVI (poslati kroz feed). Check-in, „Got it" i gym serije za
+  Gacinovic, Majer i Relvas su SIMULIRANI (`seedDemoHistory`, 134 reda u Log, device „demo-history").
+  PRE PRAVOG PILOTA pokrenuti `clearDemoHistory` u Apps Script editoru (briše samo demo redove).
+
 ## Šta Goran radi sam (ne može agent)
 
 1. Google tabela + Apps Script po `backend/UPUTSTVO.md`, PIN-ovi igrača na listu Players.
@@ -103,8 +117,7 @@ Plan red = kolone lista Plan (vidi SHEETS u Code.gs); `gym_json` i `mobility_jso
 ## Sledeći koraci (po prioritetu)
 
 1. Dugme „Pošalji plan u hub" u AEK HUB launcheru (aek_hub.pyw) koje zove most za današnji datum.
-2. `hist` u `today` i `team` odgovoru (poslednjih 7 dana po igraču iz Log + Plan) da streak, traka 7 dana i Progress
-   rade i uživo. Sada je u živom režimu istorija prazna, Progress i Week su pojednostavljeni.
+2. (GOTOVO 04.11) Istorija uživo kroz akciju `history`. Ostaje: tab Week i staff tabela trend iz iste istorije.
 3. Nedeljni plan u app-u (tab Week) iz mikrociklusa.
 4. Aktivacija i mobility po igraču iz GPS plana (sada most daje grupnu aktivaciju, mobility prazno).
 5. Push podsetnik u 07:30 (PWA push) ili WhatsApp poruka sa linkom.
