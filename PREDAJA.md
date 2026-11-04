@@ -102,6 +102,8 @@ Plan red = kolone lista Plan (vidi SHEETS u Code.gs); `gym_json` i `mobility_jso
   „Top speed and camp week". Today merači pokazuju 100% = današnji cilj.
 - Most radi za bilo koji datum: `plan_file_for` traži plan nedelje koji sadrži datum (W16, W17...). Na dan meča
   bira jedan red po igraču: MATCH ako je igrao 45+ minuta (dnevni_niz), inače dopunski trening.
+- Top speed exposure: iznad svakog stubića stoji stvarna maksimalna brzina tog dana iz GPS-a (km/h), procenat je u odnosu
+  na testirani maksimum (licni_max_brzina). Dan ispod 70% se crta na dnu skale, broj je i dalje tačan.
 - Probna istorija: planovi i GPS za 21.10 do 03.11 su PRAVI (poslati kroz feed). Check-in, „Got it" i gym serije za
   Gacinovic, Majer i Relvas su SIMULIRANI (`seedDemoHistory`, 134 reda u Log, device „demo-history").
   PRE PRAVOG PILOTA pokrenuti `clearDemoHistory` u Apps Script editoru (briše samo demo redove).
