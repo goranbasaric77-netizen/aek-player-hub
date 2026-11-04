@@ -1,6 +1,8 @@
 // AEK Player Hub service worker. Bump CACHE on every release.
 // Only GET requests of this origin are cached; the Apps Script backend is never cached.
-const CACHE = "aek-player-hub-2026-11-04c";
+// OneSignal push runs inside this same worker (one service worker per scope).
+try { importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"); } catch (e) { /* offline: caching still works */ }
+const CACHE = "aek-player-hub-2026-11-04e";
 const FILES = ["./", "./index.html", "./config.js", "./manifest.webmanifest", "./crest.webp", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

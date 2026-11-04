@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.2";
+var VERSION = "1.3";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -310,4 +310,45 @@ function upsert(name, items, keys) {
   });
   if (appends.length) sh.getRange(sh.getLastRow() + 1, 1, appends.length, head.length).setValues(appends);
   return items.length;
+}
+
+/* ------------------------------------------------------------------ morning reminder (OneSignal push) */
+
+var HUB_URL = "https://goranbasaric77-netizen.github.io/aek-player-hub/";
+
+/* Sends the 08:30 reminder to active players who have a plan today and no check-in yet.
+   Needs Script Properties ONESIGNAL_APP_ID and ONESIGNAL_KEY (REST API key, never in code). */
+function sendMorningReminder() {
+  var props = PropertiesService.getScriptProperties();
+  var appId = props.getProperty("ONESIGNAL_APP_ID"), key = props.getProperty("ONESIGNAL_KEY");
+  if (!appId || !key) { Logger.log("push: ONESIGNAL_APP_ID ili ONESIGNAL_KEY nije podesen"); return; }
+  var date = dayKey();
+  var planned = {}, done = {};
+  rows("Plan").forEach(function (r) { if (cellDate(r.date) === date) planned[String(r.player)] = 1; });
+  rows("Log").forEach(function (r) { if (cellDate(r.date) === date && r.type === "checkin") done[String(r.player)] = 1; });
+  var ids = rows("Players").filter(function (p) {
+    return p.role !== "staff" && String(p.active) !== "0" && planned[String(p.id)] && !done[String(p.id)];
+  }).map(function (p) { return String(p.id); });
+  if (!ids.length) { Logger.log("push: nikome (nema plana za danas ili su svi uradili check-in)"); return; }
+  var res = UrlFetchApp.fetch("https://api.onesignal.com/notifications?c=push", {
+    method: "post", contentType: "application/json", muteHttpExceptions: true,
+    headers: { Authorization: "Key " + key },
+    payload: JSON.stringify({
+      app_id: appId, target_channel: "push", include_aliases: { external_id: ids },
+      headings: { en: "AEK Player Hub" },
+      contents: { en: "Your plan for today is ready. Check in before training." },
+      url: HUB_URL
+    })
+  });
+  Logger.log("push " + res.getResponseCode() + " za " + ids.length + " igraca: " + res.getContentText().slice(0, 300));
+}
+
+/* Run once from the editor: daily trigger around 08:30 Athens time (Apps Script fires within about 15 minutes). */
+function setupReminders() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === "sendMorningReminder") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("sendMorningReminder").timeBased().atHour(8).nearMinute(30).everyDays(1)
+    .inTimezone("Europe/Athens").create();
+  say("Jutarnji podsetnik je zakazan svaki dan oko 08:30 (Atina).");
 }

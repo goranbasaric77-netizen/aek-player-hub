@@ -75,7 +75,11 @@ Plan red = kolone lista Plan (vidi SHEETS u Code.gs); `gym_json` i `mobility_jso
 - Apps Script: samostalan projekat (nije vezan za tabelu), Code.gs ima `SHEET_ID` i otvara tabelu po ID-u.
   Editor: https://script.google.com/home (projekat „Untitled project", slobodno preimenovati).
 - Web app URL stoji u `config.js`. Posle izmene Code.gs: Deploy > Manage deployments > olovka > New version > Deploy (URL ostaje isti).
-- List Players ima probne PIN-ove iz `setup()`; Goran ih menja i dodaje ostale igrače (id kao u ROSTER).
+- List Players (04.11.2026): staff red + svih 29 igrača iz ROSTER-a. PIN-ove igrača je generisao skript na serveru;
+  Goran ih čita iz tabele, agent ih ne zapisuje nigde (ni u repo). Izmene u tabeli raditi privremenom funkcijom
+  u Code.gs (setValue), ne kucanjem u ćelije kroz browser panel (upis se gubi).
+- Slanje plana: dugme „POŠALJI PLAN U PLAYER HUB" u AEK PERFORMANCE HUB launcheru (AEK_GPS_APP\aek_hub.pyw), sa
+  poljem FOKUS DANA. Staff PIN se pita jednom i čuva lokalno u %APPDATA%\AEK_HUB\player_hub.json.
 
 ## Šta Goran radi sam (ne može agent)
 

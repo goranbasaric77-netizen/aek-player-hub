@@ -553,6 +553,15 @@ body[data-look="light"]{--s3:#B88A00}
 .wxsrc{margin-top:12px;font-size:11.5px;color:var(--muted)}
 @media (max-width:420px){.wxbig .t{font-size:56px}.wxbig .d b{font-size:20px}.wxstats{gap:6px}.wxstats div{padding:8px}.wxstats b{font-size:19px}.wxic .ico{width:50px;height:50px}}
 
+
+/* ===== morning reminder (push) card (04.11.2026) ===== */
+.pushcard{display:flex;align-items:center;gap:14px;padding:14px 16px}
+.pushcard .ic{width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--accent) 18%,var(--surface2));color:var(--accent);display:grid;place-items:center;flex:none}
+.pushcard .t{flex:1;min-width:0}
+.pushcard .t b{font-family:var(--display);font-weight:800;font-size:18px;line-height:1.05;display:block}
+.pushcard .t small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+.pushcard button{background:var(--accent);color:var(--accent-ink);border-radius:12px;padding:10px 14px;font-family:var(--display);font-weight:900;font-size:15px;letter-spacing:.04em;flex:none}
+.pushcard.on .ic{background:color-mix(in srgb,var(--good) 18%,var(--surface2));color:var(--good)}
 /* ===== live sync (04.11.2026) ===== */
 .sync{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none;opacity:.55;display:none}
 body[data-live="1"] .sync{display:block}
@@ -878,7 +887,31 @@ function enter(id){if(id==="__staff"){enterStaff();return}leaveStaff();P=PLAYERS
 document.querySelectorAll("[data-switch]").forEach(b=>b.onclick=()=>{clearTimers();P=null;draft=null;pinBuf="";drawDots();leaveStaff();document.getElementById("app").classList.add("hidden");document.getElementById("login").classList.remove("hidden");view="today"});
 document.getElementById("staffbtn").onclick=()=>{pickId="__staff";[...plEl.children].forEach(c=>c.classList.remove("on"));document.getElementById("staffbtn").classList.add("on");document.getElementById("pinblock").classList.remove("hidden");pinBuf="";drawDots();document.getElementById("pinblock").scrollIntoView({block:"nearest",behavior:"smooth"})};
 /* Auto-login runs after the whole script is loaded (the sync module is defined further down). */
-document.addEventListener("DOMContentLoaded",()=>{const last=load("last",null);
+
+/* ---------- MORNING REMINDER (OneSignal web push). Off unless config.js has onesignal: "<App ID>". ---------- */
+const PUSH_ID=String((window.AEK_SYNC||{}).onesignal||"").trim();
+let pushReady=false;
+function pushIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)}
+function pushStandalone(){return (window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}
+function pushInit(){if(!PUSH_ID||!LIVE||!location.protocol.startsWith("http"))return;
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  const s=document.createElement("script");s.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";s.defer=true;document.head.appendChild(s);
+  OneSignalDeferred.push(async OS=>{try{
+    await OS.init({appId:PUSH_ID,safari_web_id:"web.onesignal.auto.50fac9c2-9f7f-49e4-88a1-4637f1759b35",serviceWorkerPath:"sw.js",serviceWorkerParam:{scope:location.pathname.replace(/[^/]*$/,"")},notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true});
+    pushReady=true;if(P&&P.id&&P.id!=="__staff")await OS.login(P.id);
+    OS.Notifications.addEventListener("permissionChange",()=>pushRefresh());pushRefresh()}catch(e){}})}
+function pushLogin(id){if(!pushReady||!id||id==="__staff")return;OneSignalDeferred.push(async OS=>{try{await OS.login(id)}catch(e){}})}
+function pushState(){if(!PUSH_ID||!LIVE)return "off";if(pushIOS()&&!pushStandalone())return "ios";if(!("Notification" in window))return "na";if(Notification.permission==="denied")return "denied";
+  try{if(pushReady&&OneSignal.Notifications.permission)return "on"}catch(e){}return Notification.permission==="granted"&&pushReady?"on":"ask"}
+function pushCard(){const st=pushState();if(st==="off"||st==="na")return "";
+  const txt={ask:["Morning reminder at 08:30","One tap and the hub reminds you to check in."],on:["Reminders are on","Every training morning around 08:30."],denied:["Reminders are blocked","Allow notifications for this site in your browser settings."],ios:["Add the hub to your Home Screen","Share, then Add to Home Screen. Open it from there to turn on reminders."]}[st];
+  return `<div class="card pushcard ${st==="on"?"on":""}" id="pushcard"><div class="ic">${ic(st==="on"?"check":"clock",20)}</div><div class="t"><b>${txt[0]}</b><small>${txt[1]}</small></div>${st==="ask"?`<button id="pushon">Turn on</button>`:""}</div>`}
+function pushRefresh(){const c=document.getElementById("pushcard");const n=pushCard();if(c){if(n)c.outerHTML=n;else c.remove()}}
+document.addEventListener("click",e=>{if(!e.target.closest("#pushon"))return;
+  if(!pushReady){toast("One moment, reminders are loading.");return}
+  OneSignalDeferred.push(async OS=>{try{await OS.Notifications.requestPermission();if(P&&P.id)await OS.login(P.id)}catch(err){}pushRefresh();if(pushState()==="on")toast("Reminders on. See you at 08:30.")})});
+
+document.addEventListener("DOMContentLoaded",()=>{pushInit();const last=load("last",null);
 if(LIVE&&last&&tokenOf(last)&&(last==="__staff"||PLAYERS.find(p=>p.id===last)))enter(last);
 else if(last==="__staff")document.getElementById("staffbtn").click(); else if(last&&PLAYERS.find(p=>p.id===last)){const b=[...plEl.children][PLAYERS.findIndex(p=>p.id===last)];if(b)b.click()}});
 
@@ -951,7 +984,7 @@ async function tryEnter(id){if(!LIVE){enter(id);return}const pid=id;
     if(j.ok){save("tok:"+pid,j.token);enter(id)}
     else{pinBuf="";drawDots();const dd=document.getElementById("dots");dd.classList.add("err");setTimeout(()=>dd.classList.remove("err"),500);toast(j.error==="pin"?"Wrong PIN. Try again.":"Not on the hub list yet. Ask the staff.")}}
   catch(e){if(tokenOf(pid)){toast("No connection. Showing saved data.");enter(id)}else{pinBuf="";drawDots();toast("No connection. Try again when you are online.")}}}
-function afterEnter(){if(!LIVE)return;enqueue("open","today","");syncToday()}
+function afterEnter(){if(!LIVE)return;enqueue("open","today","");syncToday();if(P)pushLogin(P.id)}
 /* Plan row from the server replaces the sketch content of this player. */
 function applyPlan(p,pl){if(!pl)return;p.dayType=pl.dayType||p.dayType;p.modeLabel=pl.modeLabel||p.modeLabel;p.sub=pl.sub||"";p.focus=pl.focus||"";
   p.pitch=pl.pitch&&pl.pitch.td?Object.assign({note:"Targets are a share of your own match reference."},pl.pitch):null;
@@ -1000,7 +1033,7 @@ function renderToday(){
     <button class="goal ${R.gym>=100?"done":""}" style="--c:var(--r3)" data-go="s3"><span class="dot"></span><span class="t">Gym session<small>${R.gym>=100?"Session complete":P.gym.title}</small></span><span class="p">${R.gymDone}<small>/${R.gymTotal} sets</small></span><span class="chev">›</span></button>
   </div>
   <div class="perfect ${R.closed?"yes":""}"><div><b>${R.closed?"Perfect day ✓":"Close all three rings"}</b><br><span>${R.closed?"All three rings closed. Streak: "+streak()+" day"+(streak()===1?"":"s")+".":"Check-in, session, gym. Three rings closed = a perfect day."}</span></div><span class="pic">${ic(R.closed?"trophy":"target",28)}</span></div></div>`;
-  h+=weatherCard();
+  h+=weatherCard()+pushCard();
   // last 7 days strip
   const days=[...P.hist.map((v,i)=>({...PAST[i],v})),{d:"Mon",n:2,t:"TODAY",v:R.vals,today:true}];
   const nPerf=days.filter(d=>perfectDay(d.v)&&(!d.today||R.closed)).length;
