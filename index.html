@@ -589,6 +589,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-04k</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -875,7 +876,8 @@ document.querySelectorAll("[data-look-toggle]").forEach(b=>b.onclick=()=>applyLo
 function drawDemo(){document.getElementById("demo-l").textContent=demoAfter?"after session":"morning";document.getElementById("demo").lastChild.textContent=demoAfter?" · tap: back to morning":" · tap: after session"}
 document.getElementById("demo").onclick=()=>{demoAfter=!demoAfter;save("demoAfter",demoAfter);drawDemo();if(P)renderAll();else if(document.body.dataset.staff)show("team")};
 drawDemo();if(LIVE)document.getElementById("demo").classList.add("hidden");
-if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+/* New release: check for a new service worker on every open and when the app comes back to the screen; when the new one takes over, reload once so the player sees the new version immediately. */
+if("serviceWorker" in navigator&&location.protocol.startsWith("http")){const swHad=!!navigator.serviceWorker.controller;let swReloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(swHad&&!swReloaded){swReloaded=true;location.reload()}});navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{reg.update().catch(()=>{});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update().catch(()=>{})})}).catch(()=>{})}
 
 /* ---------- login ---------- */
 document.getElementById("login-tri").innerHTML=triple([100,100,100],92,`<span style="font-size:26px">3</span><small>rings</small>`);

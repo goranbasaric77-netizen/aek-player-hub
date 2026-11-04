@@ -153,6 +153,10 @@ Pravilo: u živom režimu igrač vidi SAMO ono što stoji u GPS 2.5 motoru. Nema
 - Posle meča: obrisati ili prepisati privremeni `data/minuti_2026-11-04.csv` u GPS 2.5, uvesti Catapult export
   meča, pa ponovo „POŠALJI PLAN U PLAYER HUB“ za 04.11 (igrači bez 45 min prelaze na top-up i dobijaju rezultat).
 
+- 04.11 16:30, verzija 2026-11-04k: app pri svakom otvaranju i povratku na ekran proverava novi service worker i
+  kad nova verzija preuzme, sam se jednom osveži. Oznaka verzije stoji ispod PIN-a na ekranu za prijavu
+  („Version …“, menja se sa svakim izdanjem zajedno sa CACHE u sw.js). Kopija: `index_PRE_UPDATE_20261104.html`.
+
 ## Šta Goran radi sam (ne može agent)
 
 1. Google tabela + Apps Script po `backend/UPUTSTVO.md`, PIN-ovi igrača na listu Players.
