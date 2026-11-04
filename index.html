@@ -572,6 +572,8 @@ body[data-live="1"] .sync{display:block}
 .refresh{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:700;color:var(--fg)}
 .dots.err i{border-color:var(--bad);animation:shake .35s}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.spv{font-size:10px;font-weight:700;fill:var(--fg)!important;font-variant-numeric:tabular-nums}
+@media (max-width:420px){.spv{font-size:8px}}
 </style>
 </head>
 <body>
@@ -1050,7 +1052,7 @@ function applyHistory(p,days){if(!days||!days.length)return;
   p.liveWeeks=wk.length&&ref.td?{td:[],hsr:[],spr:[]}:null;
   if(p.liveWeeks)wk.forEach(w=>["td","hsr","spr"].forEach(m=>p.liveWeeks[m].push({l:w.mon.getDate()+" "+w.mon.toLocaleDateString("en-GB",{month:"short"}),v:ref[m]?+(w[m]/ref[m]).toFixed(1):0})));
   p.liveSpeed=H.map(x=>{const pl=x.d.plan;if(!pl||!x.d.result||!x.d.result.vmax||!(ref.vmax||(pl.ref&&pl.ref.vmax)))return {date:x.date,none:true};const rv=(pl.ref&&pl.ref.vmax)||ref.vmax;
-    return {date:x.date,pct:Math.round(x.d.result.vmax/rv*100),planned:!!(pl.pitch&&pl.pitch.speedGoal>=95),match:!!(x.h&&x.h.match)}});
+    return {date:x.date,pct:Math.round(x.d.result.vmax/rv*100),kmh:x.d.result.vmax,planned:!!(pl.pitch&&pl.pitch.speedGoal>=95),match:!!(x.h&&x.h.match)}});
 }
 async function loadHistory(p,asStaff){if(!LIVE||!p)return;const tok=asStaff?tokenOf("__staff"):tokenOf(p.id);if(!tok)return;
   let j=null;try{j=await api("history",asStaff?{token:tok,player:p.id,date:TK,days:14}:{token:tok,date:TK,days:14});if(j.ok)save("hist:"+p.id,j)}catch(e){j=load("hist:"+p.id,null)}
@@ -1197,13 +1199,13 @@ function renderProgress(){
   const pi=PLAYERS.indexOf(P);const days14=[];for(let i=13;i>=0;i--){const d=new Date(TODAY);d.setDate(d.getDate()-i);days14.push(d)}
   const planned=new Set([2,6,9,12].map(i=>i+pi%2));
   if(P.liveSpeed){days14.length=0;P.liveSpeed.forEach(x=>days14.push(x.date))}
-  const sp=P.liveSpeed?P.liveSpeed.map(x=>x.none?null:{d:x.date,pct:x.pct,planned:x.planned,match:x.match}):days14.map((d,i)=>{if(d.getDay()===4)return null;const base=78+seeded(pi,21,i)*14;const hit=planned.has(i)&&seeded(pi,22,i)>0.35;const match=(i===6||i===13);return {d,pct:Math.round(match?92+seeded(pi,23,i)*6:hit?95+seeded(pi,24,i)*4:base),planned:planned.has(i),match}});
+  const sp=P.liveSpeed?P.liveSpeed.map(x=>x.none?null:{d:x.date,pct:x.pct,kmh:x.kmh,planned:x.planned,match:x.match}):days14.map((d,i)=>{if(d.getDay()===4)return null;const base=78+seeded(pi,21,i)*14;const hit=planned.has(i)&&seeded(pi,22,i)>0.35;const match=(i===6||i===13);return {d,pct:Math.round(match?92+seeded(pi,23,i)*6:hit?95+seeded(pi,24,i)*4:base),planned:planned.has(i),match}});
   const nPlan=sp.filter(x=>x&&x.planned).length,nHit=sp.filter(x=>x&&x.pct>=95).length;const lastHit=[...sp].reverse().findIndex(x=>x&&x.pct>=95);
   const W2=720,H2=190,pl2=38,pr2=16,pt2=18,pb2=24;const bw2=(W2-pl2-pr2)/14;const y2=v=>pt2+(H2-pt2-pb2)*(1-(Math.max(v,70)-70)/32);
   let sb=`<svg class="chart" viewBox="0 0 ${W2} ${H2}" id="speedchart"><rect class="band" x="${pl2}" y="${y2(102)}" width="${W2-pl2-pr2}" height="${y2(95)-y2(102)}" fill="var(--good)"/>`;
   [80,90,100].forEach(v=>{sb+=`<line class="grid" x1="${pl2}" x2="${W2-pr2}" y1="${y2(v)}" y2="${y2(v)}"/><text x="${pl2-6}" y="${y2(v)+4}" text-anchor="end">${v}%</text>`});
   sb+=`<line class="bandline" x1="${pl2}" x2="${W2-pr2}" y1="${y2(95)}" y2="${y2(95)}" stroke="var(--bad)" stroke-width="1.8"/><text x="${W2-pr2-2}" y="${y2(95)-4}" text-anchor="end" style="fill:var(--bad);font-weight:800">95%</text>`;
-  sp.forEach((s,i)=>{const x=pl2+i*bw2+bw2*0.22,w=bw2*0.56;const lab=days14[i].toLocaleDateString("en-GB",{weekday:"short"})[0];sb+=`<text x="${x+w/2}" y="${H2-8}" text-anchor="middle">${lab}</text>`;if(!s){sb+=`<text x="${x+w/2}" y="${H2-pb2-6}" text-anchor="middle" style="font-size:9px">${P.liveSpeed?"–":"off"}</text>`;return}const y=y2(s.pct),hh=(H2-pb2)-y;const cls=s.pct>=95?"zg":s.match?"":"zw";sb+=`<rect class="cbar ${cls}" style="animation-delay:${i*40}ms;${s.match?"fill:var(--fg)":""}" x="${x}" y="${y}" width="${w}" height="${hh}" data-tip="${days14[i].toLocaleDateString("en-GB",{weekday:"short",day:"2-digit"})} · ${s.pct}% of best (${(P.ref.vmax*s.pct/100).toFixed(1)} km/h)${s.match?" · match":s.planned?" · exposure planned":""}"/>${s.planned&&!s.match?`<circle cx="${x+w/2}" cy="${y-7}" r="3" fill="${s.pct>=95?"var(--good)":"var(--bad)"}"/>`:""}`});
+  sp.forEach((s,i)=>{const x=pl2+i*bw2+bw2*0.22,w=bw2*0.56;const lab=days14[i].toLocaleDateString("en-GB",{weekday:"short"})[0];sb+=`<text x="${x+w/2}" y="${H2-8}" text-anchor="middle">${lab}</text>`;if(!s){sb+=`<text x="${x+w/2}" y="${H2-pb2-6}" text-anchor="middle" style="font-size:9px">${P.liveSpeed?"–":"off"}</text>`;return}const y=y2(s.pct),hh=(H2-pb2)-y;const kmh=s.kmh||P.ref.vmax*s.pct/100;const cls=s.pct>=95?"zg":s.match?"":"zw";sb+=`<rect class="cbar ${cls}" style="animation-delay:${i*40}ms;${s.match?"fill:var(--fg)":""}" x="${x}" y="${y}" width="${w}" height="${hh}" data-tip="${days14[i].toLocaleDateString("en-GB",{weekday:"short",day:"2-digit"})} · ${kmh.toFixed(1)} km/h · ${s.pct}% of best${s.match?" · match":s.planned?" · exposure planned":""}"/>${s.planned&&!s.match?`<circle cx="${x+w/2}" cy="${y-7}" r="3" fill="${s.pct>=95?"var(--good)":"var(--bad)"}"/>`:""}<text class="spv" x="${x+w/2}" y="${y-(s.planned&&!s.match?14:5)}" text-anchor="middle">${kmh.toFixed(1)}</text>`});
   sb+=`</svg>`;
   const spd=P.speedDays;const spdCls=spd<=7?"g":spd<=10?"w":"r";
   const h=`<div class="card"><div class="head"><div><div class="eyebrow">Last 7 days</div><h2>Your rings</h2></div><span class="pill ${nPerf>=5?"y":""}">${nPerf} perfect day${nPerf===1?"":"s"}</span></div><div class="strip">${days.map(d=>`<div class="dy ${d.today?"today":""} ${perfectDay(d.v)&&(!d.today||R.closed)?"perfect-day":""}">${triple(d.v,44,d.t==="MATCH"?`<span class="st">${ic("ball",14)}</span>`:"")}<span>${d.d}</span></div>`).join("")}</div><div class="kpis" style="margin-top:16px"><div class="kpi ${nPerf>=5?"y":""}"><div class="k">Perfect days</div><div class="v"><span data-count="${nPerf}">0</span><small>of 7</small></div></div><div class="kpi"><div class="k">Check-ins</div><div class="v"><span data-count="${ciN}">0</span><small>of 7</small></div></div><div class="kpi"><div class="k">Session ring</div><div class="v"><span data-count="${sessAvg}">0</span><small>%</small></div></div><div class="kpi"><div class="k">Gym ring</div><div class="v"><span data-count="${gymAvg}">0</span><small>%</small></div></div></div></div>
