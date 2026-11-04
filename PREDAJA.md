@@ -81,6 +81,17 @@ Plan red = kolone lista Plan (vidi SHEETS u Code.gs); `gym_json` i `mobility_jso
 - Slanje plana: dugme „POŠALJI PLAN U PLAYER HUB" u AEK PERFORMANCE HUB launcheru (AEK_GPS_APP\aek_hub.pyw), sa
   poljem FOKUS DANA. Staff PIN se pita jednom i čuva lokalno u %APPDATA%\AEK_HUB\player_hub.json.
 
+## Jutarnji podsetnik (OneSignal web push, 04.11.2026)
+
+- OneSignal app „AEK Player Hub" (Goranov nalog), integracija Custom code. App ID je u `config.js` (`onesignal`),
+  REST ključ je samo u Script Properties (`ONESIGNAL_KEY`), nikad u kodu.
+- App: kartica „Morning reminder at 08:30" na Today (stanja ask/on/denied/ios), `OneSignal.login(player id)` povezuje
+  telefon sa igračem (external_id). `sw.js` uvozi OneSignal worker; `OneSignalSDKWorker.js` samo prosleđuje na `sw.js`.
+  serviceWorkerPath mora biti relativan na koren sajta (`aek-player-hub/sw.js`), ne samo `sw.js`.
+- Skript: `sendMorningReminder` šalje igračima koji imaju plan za danas i još nisu uradili check-in; okidač pravi
+  `setupReminders` (svaki dan oko 08:30 Europe/Athens, napravljen 04.11).
+- iPhone: obaveštenja rade samo kad je app dodat na početni ekran i otvoren odatle.
+
 ## Šta Goran radi sam (ne može agent)
 
 1. Google tabela + Apps Script po `backend/UPUTSTVO.md`, PIN-ovi igrača na listu Players.
