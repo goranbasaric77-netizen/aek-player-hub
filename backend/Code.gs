@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.4";
+var VERSION = "1.5";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -19,7 +19,8 @@ function say(msg) { Logger.log(msg); try { SpreadsheetApp.getUi().alert(msg); } 
 var SHEETS = {
   Players: ["id", "name", "pin", "role", "active"],
   Plan: ["date", "player", "day_type", "mode_label", "sub", "focus", "pitch_td", "pitch_hsr", "pitch_spr", "cap_pct", "speed_goal", "speed_work",
-         "act_time", "act_group", "act_indiv", "mobility_json", "gym_json", "ref_td", "ref_hsr", "ref_spr", "ref_vmax", "speed_days", "last_speed", "last_min"],
+         "act_time", "act_group", "act_indiv", "mobility_json", "gym_json", "ref_td", "ref_hsr", "ref_spr", "ref_vmax", "speed_days", "last_speed", "last_min",
+         "extra_json"],
   Results: ["date", "player", "td", "hsr", "spr", "vmax"],
   Log: ["ts", "date", "player", "type", "key", "value", "device"],
   Tokens: ["token", "player", "created"],
@@ -196,7 +197,8 @@ function planOut(r) {
     activation: { time: timeStr(r.act_time), group: r.act_group || "", indiv: String(r.act_indiv || "").split(";").map(function (s) { return s.trim(); }).filter(Boolean) },
     mobility: jsonOrNull(r.mobility_json), gym: jsonOrNull(r.gym_json),
     ref: { td: num(r.ref_td), hsr: num(r.ref_hsr), spr: num(r.ref_spr), vmax: num(r.ref_vmax) },
-    speedDays: num(r.speed_days), lastSpeed: num(r.last_speed), lastMin: num(r.last_min)
+    speedDays: num(r.speed_days), lastSpeed: num(r.last_speed), lastMin: num(r.last_min),
+    extra: jsonOrNull(r.extra_json)
   };
 }
 
@@ -289,9 +291,19 @@ function readiness(c) {
 function feed(body) {
   var staff = rows("Players").filter(function (r) { return r.role === "staff"; })[0];
   if (!staff || String(body.key || "") !== String(staff.pin)) return { ok: false, error: "key" };
+  ensureHeaders("Plan");
   var nPlan = upsert("Plan", body.plan || [], ["date", "player"]);
   var nRes = upsert("Results", body.results || [], ["date", "player"]);
   return { ok: true, plan: nPlan, results: nRes };
+}
+
+/* 1.5: new columns (extra_json) are added to the sheet header when the script grows. */
+function ensureHeaders(name) {
+  var sh = sheet(name), head = SHEETS[name];
+  var have = sh.getLastRow() ? sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0] : [];
+  for (var i = 0; i < head.length; i++) {
+    if (String(have[i] || "") !== head[i]) { sh.getRange(1, i + 1).setValue(head[i]).setFontWeight("bold"); }
+  }
 }
 
 /* Upsert rows (objects keyed by header name) into a sheet by key columns. */
