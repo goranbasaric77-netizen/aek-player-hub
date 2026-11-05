@@ -185,3 +185,9 @@ Pravilo: u živom režimu igrač vidi SAMO ono što stoji u GPS 2.5 motoru. Nema
   `index_PRE_<NAZIV>_<datum>.html` u istom folderu.
 - `config.js` i list Players u tabeli: Goran.
 - GPS 2.5 folder: samo čitanje iz mosta, ništa se ne upisuje osim privremenog `hub_feed_<datum>.json` pri dry-run.
+
+- 05.11 23:15, verzija 2026-11-05m (Goran: „uradi mi samo za staff"): staff može da gleda JUČE / DANAS / SUTRA. U Team heroju
+  tri dugmeta (Yesterday, Today, Tomorrow); `setStaffDay(off)` pomera `TODAY`/`TK` (sada `let`, pravi dan ostaje u `TODAY0`),
+  ponovo vuče `team` za taj datum i otvara igrača za taj datum (plan, rezultat, istorija). Igrač UVEK vidi pravi današnji dan:
+  `enter(id)` vraća pomak na 0. Igrači ne vide sutra (Goranova odluka). Kopija: `index_PRE_STAFFDATE_20261105.html`.
+  Feed za sutra treba poslati uveče da bi „Tomorrow" imao sadržaj (AEK_GPS_APP\Posalji_Hub_04_i_06.bat šalje 04, 05, 06.11).
