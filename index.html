@@ -589,7 +589,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-05m</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-06a</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -698,7 +698,7 @@ const ROSTER = [
   {id:"mantalos", name:"Petros Mantalos", short:"Mantalos", av:"PM", pos:"Midfielder"},
   {id:"marin", name:"Razvan Marin", short:"Marin", av:"RM", pos:"Midfielder"},
   {id:"zine", name:"Salvador Zine", short:"Zine", av:"SZ", pos:"Winger"},
-  {id:"pilios", name:"Stavros Pilios", short:"Pilios", av:"SP", pos:"Right back"},
+  {id:"pilios", name:"Stavros Pilios", short:"Pilios", av:"SP", pos:"Left back"},
   {id:"joaomario", name:"Joao Mario", short:"Joao Mario", av:"JM", pos:"Midfielder"},
   {id:"argyriou", name:"Argyris Argyriou", short:"Argyriou", av:"AA", pos:"Centre back", photo:false},
   {id:"christakopoulos", name:"Spiros Christakopoulos", short:"Christakopoulos", av:"SC", pos:"Midfielder", photo:false},
@@ -720,7 +720,7 @@ const DETAILED = [
    ref:{td:10420,hsr:612,spr:171,vmax:34.1}, speedDays:4, lastSpeed:32.9, pb:{hsr:702,spr:214},
    trend:[1.9,2.3,2.6,2.2,2.4,2.1], readiness:[72,80,78,66,74,81,0], total:38,
    hist:[[100,100,100],[100,100,null],[100,100,72],[100,100,100],[100,100,100],[100,100,null]]},
-  {id:"pilios", name:"Stavros Pilios", short:"Pilios", av:"PP", pos:"Right back", lastMin:12,
+  {id:"pilios", name:"Stavros Pilios", short:"Pilios", av:"PP", pos:"Left back", lastMin:12,
    modeLabel:"Compensation", dayType:"MD+1 · Training 11:00", sub:"Short minutes yesterday. Today you build the load you missed, with the top speed kept under the cap.",
    focus:"Hit the distance, respect the speed cap. No hero sprints today.",
    activation:{time:"10:30", group:"Group activation with the team", indiv:[]},
@@ -980,12 +980,12 @@ async function api(action,data){if(!LIVE)throw new Error("offline");const ctl=ne
 let netOK=null;
 function syncDot(ok){netOK=ok;const d=document.getElementById("sync");if(!d)return;const q=queue().length;d.className="sync "+(ok===false?"off":q?"pending":"ok");d.title=ok===false?"No connection, changes are saved on this phone and sent later":q?q+" change(s) waiting to send":"Connected, everything sent"}
 function queue(){return load("queue",[])}
-function enqueue(type,key,value){if(!LIVE||!P)return;const q=queue();q.push({ts:Date.now(),date:TK,player:P.id,type,key:key==null?"":String(key),value:value==null?"":value});save("queue",q);syncDot(netOK);flushSoon()}
+function enqueue(type,key,value){if(!LIVE||!P||document.body.dataset.staff)return; /* 05.11.2026: staff samo gleda, ne beleži događaje igrača */const q=queue();q.push({ts:Date.now(),date:TK,player:P.id,type,key:key==null?"":String(key),value:value==null?"":value});save("queue",q);syncDot(netOK);flushSoon()}
 let flushT=null;function flushSoon(){clearTimeout(flushT);flushT=setTimeout(flush,900)}
 let flushing=false;
 async function flush(){if(!LIVE||flushing)return;const q=queue();if(!q.length){syncDot(netOK);return}flushing=true;
   try{const byP={};q.forEach(e=>{(byP[e.player]=byP[e.player]||[]).push(e)});
-    for(const id in byP){const tok=tokenOf(id);if(!tok)continue;const batch=byP[id];const j=await api("log",{token:tok,events:batch});
+    for(const id in byP){const tok=tokenOf(id);if(!tok){if(document.body.dataset.staff)save("queue",queue().filter(e=>e.player!==id));continue}const batch=byP[id];const j=await api("log",{token:tok,events:batch});
       if(j.ok){const sent=new Set(batch.map(e=>e.ts+"|"+e.type+"|"+e.key));save("queue",queue().filter(e=>!(e.player===id&&sent.has(e.ts+"|"+e.type+"|"+e.key))))}
       else if(j.error==="auth"){save("tok:"+id,null);toast("Session expired. Please log in again.")}}
   }catch(e){}finally{flushing=false;syncDot(netOK)}}
@@ -1289,7 +1289,7 @@ function staffHeader(){document.getElementById("h-name").textContent="Performanc
   const av=document.getElementById("h-av");av.classList.remove("photo");av.classList.add("crestav");av.innerHTML=`<img src="crest.webp" alt="">`;
   const sv=document.getElementById("s-av");sv.classList.remove("photo");sv.classList.add("crestav");sv.innerHTML=`<img src="crest.webp" alt="">`;
   document.getElementById("s-name").textContent="Staff";document.getElementById("s-pos").textContent="Performance";document.getElementById("h-streakwrap").classList.add("hidden")}
-function enterStaff(){P=null;draft=null;TEAMDATA=null;document.body.dataset.staff="1";document.body.dataset.noplayer="1";save("last","__staff");
+function enterStaff(){P=null;draft=null;TEAMDATA=null;document.body.dataset.staff="1";setTimeout(flush,300);document.body.dataset.noplayer="1";save("last","__staff");
   document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("staffbar").classList.add("hidden");staffHeader();show("team")}
 function leaveStaff(){delete document.body.dataset.staff;delete document.body.dataset.noplayer;document.getElementById("staffbar").classList.add("hidden");document.getElementById("h-streakwrap").classList.remove("hidden")}
 function hasLocalToday(st){if(st.seeded===TK)return false;return !!(st.checkins[TK]||(st.gym[TK]&&Object.keys(st.gym[TK]).length)||(st.mob[TK]&&Object.keys(st.mob[TK]).length)||st.ack[TK])}
