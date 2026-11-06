@@ -332,6 +332,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:34px}
 .chart{width:100%;height:auto;display:block;margin-top:6px}
 .chart text{font-family:var(--body);font-size:11px;fill:var(--muted);font-weight:600}
 #speedchart text{font-size:15px}
+#speedchart .spv{font-size:13px}
 .chart .grid{stroke:var(--line);stroke-width:1}
 .chart .band{opacity:.12}
 .chart .bandline{stroke-width:1.2;stroke-dasharray:4 3;opacity:.8}
@@ -589,7 +590,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-06b</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-06c</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -1241,12 +1242,12 @@ function renderProgress(){
   /* Today: history ends yesterday, so today's own GPS result (same source as the pitch chart) fills today's slot. */
   if(P.liveSpeed&&LIVE&&P.result&&P.result.vmax&&(P.ref&&P.ref.vmax)){const ti=7+weekInfo().ti;if(ti<14&&!sp[ti]){const rv=P.ref.vmax;sp[ti]={d:days14[ti],pct:Math.round(P.result.vmax/rv*100),kmh:P.result.vmax,planned:!!(P.pitch&&P.pitch.speedGoal>=95),match:/^MD(\s|$)/.test((P.dayType||"").trim())||/match/i.test(P.modeLabel||"")}}}
   const nPlan=sp.filter(x=>x&&x.planned).length,nHit=sp.filter(x=>x&&x.pct>=95).length;const lastHit=[...sp].reverse().findIndex(x=>x&&x.pct>=95);
-  const W2=720,H2=190,pl2=38,pr2=16,pt2=18,pb2=24;const bw2=(W2-pl2-pr2)/14;const y2=v=>pt2+(H2-pt2-pb2)*(1-(Math.max(v,70)-70)/32);
+  const W2=720,H2=214,pl2=38,pr2=16,pt2=42,pb2=24;const bw2=(W2-pl2-pr2)/14;const y2=v=>pt2+(H2-pt2-pb2)*(1-(Math.max(v,70)-70)/32);
   let sb=`<svg class="chart" viewBox="0 0 ${W2} ${H2}" id="speedchart"><rect class="band" x="${pl2}" y="${y2(102)}" width="${W2-pl2-pr2}" height="${y2(95)-y2(102)}" fill="var(--good)"/>`;
   [80,90,100].forEach(v=>{sb+=`<line class="grid" x1="${pl2}" x2="${W2-pr2}" y1="${y2(v)}" y2="${y2(v)}"/><text x="${pl2-6}" y="${y2(v)+4}" text-anchor="end">${v}%</text>`});
   sb+=`<line class="bandline" x1="${pl2}" x2="${W2-pr2}" y1="${y2(95)}" y2="${y2(95)}" stroke="var(--bad)" stroke-width="1.8"/><text x="${W2-pr2-2}" y="${y2(95)-4}" text-anchor="end" style="fill:var(--bad);font-weight:800">95%</text>`;
   sp.forEach((s,i)=>{const x=pl2+i*bw2+bw2*0.22,w=bw2*0.56;const lab=days14[i].toLocaleDateString("en-GB",{weekday:"short"})[0];sb+=`<text x="${x+w/2}" y="${H2-8}" text-anchor="middle">${lab}</text>`;if(!s){sb+=`<text x="${x+w/2}" y="${H2-pb2-6}" text-anchor="middle" style="font-size:9px">${P.liveSpeed?"–":"off"}</text>`;return}const y=y2(s.pct),hh=(H2-pb2)-y;const kmh=s.kmh||P.ref.vmax*s.pct/100;const cls=s.pct>=95?"zg":s.match?"":"zw";sb+=`<rect class="cbar ${cls}" style="animation-delay:${i*40}ms;${s.match?"fill:var(--fg)":""}" x="${x}" y="${y}" width="${w}" height="${hh}" data-tip="${days14[i].toLocaleDateString("en-GB",{weekday:"short",day:"2-digit"})} · ${kmh.toFixed(1)} km/h · ${s.pct}% of best${s.match?" · match":s.planned?" · exposure planned":""}"/>${s.planned&&!s.match?`<circle cx="${x+w/2}" cy="${y-7}" r="3" fill="${s.pct>=95?"var(--good)":"var(--bad)"}"/>`:""}<text class="spv" x="${x+w/2}" y="${y-(s.planned&&!s.match?14:5)}" text-anchor="middle">${kmh.toFixed(1)}</text>`});
-  if(P.liveSpeed){const xd=pl2+7*bw2;sb+=`<line x1="${xd}" x2="${xd}" y1="${pt2-6}" y2="${H2-pb2}" stroke="var(--muted)" stroke-dasharray="3,3"/><text x="${pl2+3.5*bw2}" y="${pt2-6}" text-anchor="middle" style="font-weight:800">${WI.prev}</text><text x="${pl2+10.5*bw2}" y="${pt2-6}" text-anchor="middle" style="font-weight:800">${WI.cur}</text>`}
+  if(P.liveSpeed){const xd=pl2+7*bw2;sb+=`<line x1="${xd}" x2="${xd}" y1="12" y2="${H2-pb2}" stroke="var(--muted)" stroke-dasharray="3,3"/><text x="${pl2+3.5*bw2}" y="14" text-anchor="middle" style="font-weight:800">${WI.prev}</text><text x="${pl2+10.5*bw2}" y="14" text-anchor="middle" style="font-weight:800">${WI.cur}</text>`}
   sb+=`</svg>`;
   const spd=P.speedDays;const spdCls=spd<=7?"g":spd<=10?"w":"r";
   const h=`<div class="card"><div class="head"><div><div class="eyebrow">${P.liveHist?weekInfo().cur+" · "+weekInfo().range:"Last 7 days"}</div><h2>Your rings</h2></div><span class="pill ${nPerf>=5?"y":""}">${nPerf} perfect day${nPerf===1?"":"s"}</span></div><div class="strip">${days.map(d=>`<div class="dy ${d.today?"today":""} ${perfectDay(d.v)&&(!d.today||R.closed)?"perfect-day":""}" ${d.future?'style="opacity:.35"':""}>${triple(d.v,44,d.t==="MATCH"?`<span class="st">${ic("ball",14)}</span>`:"")}<span>${d.d}</span></div>`).join("")}</div><div class="kpis" style="margin-top:16px"><div class="kpi ${nPerf>=5?"y":""}"><div class="k">Perfect days</div><div class="v"><span data-count="${nPerf}">0</span><small>of ${soFar.length}</small></div></div><div class="kpi"><div class="k">Check-ins</div><div class="v"><span data-count="${ciN}">0</span><small>of ${soFar.length}</small></div></div><div class="kpi"><div class="k">Session ring</div><div class="v"><span data-count="${sessAvg}">0</span><small>%</small></div></div><div class="kpi"><div class="k">Gym ring</div><div class="v"><span data-count="${gymAvg}">0</span><small>%</small></div></div></div></div>
