@@ -589,7 +589,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-06a</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-06b</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -667,7 +667,8 @@ function face(n,sz){sz=sz||30;return `<svg class="ico face" viewBox="0 0 24 24" 
 const CFG=Object.assign({url:""},window.AEK_SYNC||{});
 const LIVE=!!CFG.url;
 if(LIVE)document.body.dataset.live="1";
-const TODAY = LIVE ? new Date() : new Date(2026,10,2);
+const TODAY0 = LIVE ? new Date() : new Date(2026,10,2);
+let TODAY = TODAY0, STAFF_OFF = 0;   /* 05.11.2026: staff moze da gleda juce/danas/sutra; igrac uvek pravi danas */
 const NEXT_MATCH = {when:new Date(2026,10,4,22,0), opp:"Champions League", where:"Home · Wed 22:00"};
 const WEATHER = {at:"11:00", place:"Spata", temp:17, icon:"rain", desc:"Light rain", rain:60, hint:"Wet pitch: long studs, warm top for activation."};
 const PAST = [{d:"Tue",n:27,t:"MD+1"},{d:"Wed",n:28,t:"MATCH"},{d:"Thu",n:29,t:"MD+1"},{d:"Fri",n:30,t:"MD-2"},{d:"Sat",n:31,t:"MD-1"},{d:"Sun",n:1,t:"MATCH"}];
@@ -697,7 +698,7 @@ const ROSTER = [
   {id:"mantalos", name:"Petros Mantalos", short:"Mantalos", av:"PM", pos:"Midfielder"},
   {id:"marin", name:"Razvan Marin", short:"Marin", av:"RM", pos:"Midfielder"},
   {id:"zine", name:"Salvador Zine", short:"Zine", av:"SZ", pos:"Winger"},
-  {id:"pilios", name:"Stavros Pilios", short:"Pilios", av:"SP", pos:"Right back"},
+  {id:"pilios", name:"Stavros Pilios", short:"Pilios", av:"SP", pos:"Left back"},
   {id:"joaomario", name:"Joao Mario", short:"Joao Mario", av:"JM", pos:"Midfielder"},
   {id:"argyriou", name:"Argyris Argyriou", short:"Argyriou", av:"AA", pos:"Centre back", photo:false},
   {id:"christakopoulos", name:"Spiros Christakopoulos", short:"Christakopoulos", av:"SC", pos:"Midfielder", photo:false},
@@ -719,7 +720,7 @@ const DETAILED = [
    ref:{td:10420,hsr:612,spr:171,vmax:34.1}, speedDays:4, lastSpeed:32.9, pb:{hsr:702,spr:214},
    trend:[1.9,2.3,2.6,2.2,2.4,2.1], readiness:[72,80,78,66,74,81,0], total:38,
    hist:[[100,100,100],[100,100,null],[100,100,72],[100,100,100],[100,100,100],[100,100,null]]},
-  {id:"pilios", name:"Stavros Pilios", short:"Pilios", av:"PP", pos:"Right back", lastMin:12,
+  {id:"pilios", name:"Stavros Pilios", short:"Pilios", av:"PP", pos:"Left back", lastMin:12,
    modeLabel:"Compensation", dayType:"MD+1 · Training 11:00", sub:"Short minutes yesterday. Today you build the load you missed, with the top speed kept under the cap.",
    focus:"Hit the distance, respect the speed cap. No hero sprints today.",
    activation:{time:"10:30", group:"Group activation with the team", indiv:[]},
@@ -826,7 +827,8 @@ const RING_C=["var(--r1)","var(--r2)","var(--r3)"];
 /* ---------- state ---------- */
 let P=null, view="today", bodySide="front", timers=[], draft=null, metricSel="td", doneSel="td";
 const dkey = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-const TK = dkey(TODAY);
+let TK = dkey(TODAY);
+function setStaffDay(off){STAFF_OFF=off;TODAY=new Date(TODAY0.getFullYear(),TODAY0.getMonth(),TODAY0.getDate()+off);TK=dkey(TODAY);TEAMDATA=null;staffHeader();renderTeam()}
 const MEM={};
 function load(k,def){if(k in MEM)return MEM[k];try{const v=localStorage.getItem("aekhub2:"+k);if(v){MEM[k]=JSON.parse(v);return MEM[k]}}catch(e){}return def}
 function save(k,v){MEM[k]=v;try{localStorage.setItem("aekhub2:"+k,JSON.stringify(v))}catch(e){}}
@@ -888,7 +890,7 @@ PLAYERS.forEach(p=>{const b=document.createElement("button");b.className=p.gk?"g
 const pinEl=document.getElementById("pin");
 ["1","2","3","4","5","6","7","8","9","","0","⌫"].forEach(k=>{const b=document.createElement("button");if(k==="⌫"){b.innerHTML=ic("del",24);b.setAttribute("aria-label","Delete last digit")}else b.textContent=k;if(k==="")b.style.visibility="hidden";b.onclick=()=>{if(k==="⌫")pinBuf=pinBuf.slice(0,-1);else if(pinBuf.length<4)pinBuf+=k;drawDots();if(pinBuf.length===4)setTimeout(()=>tryEnter(pickId),150)};pinEl.appendChild(b)});
 function drawDots(){[...document.getElementById("dots").children].forEach((d,i)=>d.classList.toggle("on",i<pinBuf.length))}
-function enter(id){if(id==="__staff"){enterStaff();return}leaveStaff();P=PLAYERS.find(p=>p.id===id);save("last",id);document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");view="today";renderAll();afterEnter()}
+function enter(id){if(STAFF_OFF){STAFF_OFF=0;TODAY=TODAY0;TK=dkey(TODAY)}if(id==="__staff"){enterStaff();return}leaveStaff();P=PLAYERS.find(p=>p.id===id);save("last",id);document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");view="today";renderAll();afterEnter()}
 document.querySelectorAll("[data-switch]").forEach(b=>b.onclick=()=>{clearTimers();P=null;draft=null;pinBuf="";drawDots();leaveStaff();document.getElementById("app").classList.add("hidden");document.getElementById("login").classList.remove("hidden");view="today"});
 document.getElementById("staffbtn").onclick=()=>{pickId="__staff";[...plEl.children].forEach(c=>c.classList.remove("on"));document.getElementById("staffbtn").classList.add("on");document.getElementById("pinblock").classList.remove("hidden");pinBuf="";drawDots();document.getElementById("pinblock").scrollIntoView({block:"nearest",behavior:"smooth"})};
 /* Auto-login runs after the whole script is loaded (the sync module is defined further down). */
@@ -978,12 +980,12 @@ async function api(action,data){if(!LIVE)throw new Error("offline");const ctl=ne
 let netOK=null;
 function syncDot(ok){netOK=ok;const d=document.getElementById("sync");if(!d)return;const q=queue().length;d.className="sync "+(ok===false?"off":q?"pending":"ok");d.title=ok===false?"No connection, changes are saved on this phone and sent later":q?q+" change(s) waiting to send":"Connected, everything sent"}
 function queue(){return load("queue",[])}
-function enqueue(type,key,value){if(!LIVE||!P)return;const q=queue();q.push({ts:Date.now(),date:TK,player:P.id,type,key:key==null?"":String(key),value:value==null?"":value});save("queue",q);syncDot(netOK);flushSoon()}
+function enqueue(type,key,value){if(!LIVE||!P||document.body.dataset.staff)return; /* 05.11.2026: staff samo gleda, ne beleži događaje igrača */const q=queue();q.push({ts:Date.now(),date:TK,player:P.id,type,key:key==null?"":String(key),value:value==null?"":value});save("queue",q);syncDot(netOK);flushSoon()}
 let flushT=null;function flushSoon(){clearTimeout(flushT);flushT=setTimeout(flush,900)}
 let flushing=false;
 async function flush(){if(!LIVE||flushing)return;const q=queue();if(!q.length){syncDot(netOK);return}flushing=true;
   try{const byP={};q.forEach(e=>{(byP[e.player]=byP[e.player]||[]).push(e)});
-    for(const id in byP){const tok=tokenOf(id);if(!tok)continue;const batch=byP[id];const j=await api("log",{token:tok,events:batch});
+    for(const id in byP){const tok=tokenOf(id);if(!tok){if(document.body.dataset.staff)save("queue",queue().filter(e=>e.player!==id));continue}const batch=byP[id];const j=await api("log",{token:tok,events:batch});
       if(j.ok){const sent=new Set(batch.map(e=>e.ts+"|"+e.type+"|"+e.key));save("queue",queue().filter(e=>!(e.player===id&&sent.has(e.ts+"|"+e.type+"|"+e.key))))}
       else if(j.error==="auth"){save("tok:"+id,null);toast("Session expired. Please log in again.")}}
   }catch(e){}finally{flushing=false;syncDot(netOK)}}
@@ -1289,7 +1291,7 @@ function staffHeader(){document.getElementById("h-name").textContent="Performanc
   const av=document.getElementById("h-av");av.classList.remove("photo");av.classList.add("crestav");av.innerHTML=`<img src="crest.webp" alt="">`;
   const sv=document.getElementById("s-av");sv.classList.remove("photo");sv.classList.add("crestav");sv.innerHTML=`<img src="crest.webp" alt="">`;
   document.getElementById("s-name").textContent="Staff";document.getElementById("s-pos").textContent="Performance";document.getElementById("h-streakwrap").classList.add("hidden")}
-function enterStaff(){P=null;draft=null;TEAMDATA=null;document.body.dataset.staff="1";document.body.dataset.noplayer="1";save("last","__staff");
+function enterStaff(){P=null;draft=null;TEAMDATA=null;document.body.dataset.staff="1";setTimeout(flush,300);document.body.dataset.noplayer="1";save("last","__staff");
   document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("staffbar").classList.add("hidden");staffHeader();show("team")}
 function leaveStaff(){delete document.body.dataset.staff;delete document.body.dataset.noplayer;document.getElementById("staffbar").classList.add("hidden");document.getElementById("h-streakwrap").classList.remove("hidden")}
 function hasLocalToday(st){if(st.seeded===TK)return false;return !!(st.checkins[TK]||(st.gym[TK]&&Object.keys(st.gym[TK]).length)||(st.mob[TK]&&Object.keys(st.mob[TK]).length)||st.ack[TK])}
@@ -1328,7 +1330,7 @@ function renderTeam(){
   const score=r=>Math.round(r.vals.reduce((a,b)=>a+b,0)/3);
   if(teamSort==="ready")list.sort((a,b)=>(a.ready??-1)-(b.ready??-1));else if(teamSort==="score")list.sort((a,b)=>score(a)-score(b));else if(teamSort==="att")list.sort((a,b)=>(b.att?1:0)-(a.att?1:0));
   const dateL=TODAY.toLocaleDateString("en-GB",{weekday:"long",day:"2-digit",month:"long"});
-  let h=`<div class="card hero"><div class="teamhero"><img class="crest" src="crest.webp" alt=""><div><div class="eyebrow">${dateL} · ${demoAfter?"after the session":"this morning"}</div><div class="big" style="font-size:38px">Team today</div><div class="sub">Tap a player to open their own screens. A red border means a word before training.</div></div></div>
+  let h=`<div class="card hero"><div class="teamhero"><img class="crest" src="crest.webp" alt=""><div><div class="eyebrow">${dateL} · ${demoAfter?"after the session":"this morning"}</div><div class="big" style="font-size:38px">${STAFF_OFF===0?"Team today":STAFF_OFF===1?"Team tomorrow":STAFF_OFF===-1?"Team yesterday":"Team"}</div><div class="fchips" style="margin-top:10px">${[[-1,"Yesterday"],[0,"Today"],[1,"Tomorrow"]].map(x=>`<button data-day="${x[0]}" class="${STAFF_OFF===x[0]?"on":""}">${x[1]}</button>`).join("")}</div><div class="sub">Tap a player to open their own screens. A red border means a word before training.</div></div></div>
   <div class="teamkpi" style="margin-top:16px"><div class="kpi ${nCI===rows.length?"y":""}"><div class="k">Check-ins</div><div class="v"><span data-count="${nCI}">0</span><small>/ ${rows.length}</small></div></div><div class="kpi"><div class="k">Avg readiness</div><div class="v" style="color:${avgR==null?"var(--muted)":readyColor(avgR)}">${avgR==null?"—":`<span data-count="${avgR}">0</span>`}</div></div><div class="kpi"><div class="k">Opened the app</div><div class="v"><span data-count="${nOpen}">0</span><small>/ ${rows.length}</small></div></div><div class="kpi"><div class="k">Needs attention</div><div class="v" style="${nAtt?"color:var(--bad)":""}"><span data-count="${nAtt}">0</span></div></div></div>
   <div class="legend" style="margin-top:12px"><span><b style="color:var(--fg)">${nAck}</b>&nbsp;read the focus</span><span><b style="color:var(--fg)">${nGym}</b>&nbsp;of ${nGymPlanned} gym complete</span><span><b style="color:var(--fg)">${nPerf}</b>&nbsp;perfect days so far</span></div></div>`;
   h+=`<div class="card"><div class="head"><div><div class="eyebrow">Players</div><h2>${list.length} of ${rows.length}</h2></div><div class="sortrow"><label class="eyebrow" for="tsort">Sort</label><select id="tsort"><option value="name" ${teamSort==="name"?"selected":""}>Roster</option><option value="att" ${teamSort==="att"?"selected":""}>Attention first</option><option value="ready" ${teamSort==="ready"?"selected":""}>Readiness, low first</option><option value="score" ${teamSort==="score"?"selected":""}>Day score, low first</option></select></div></div>
@@ -1338,7 +1340,7 @@ function renderTeam(){
   <div class="legend" style="margin-top:12px"><span><i style="background:var(--good)"></i>Perfect day</span><span><i style="background:var(--warn)"></i>Partly done</span><span><i style="background:var(--bad)"></i>Something missed</span><span><i style="outline:2px solid var(--fg);outline-offset:1px;background:var(--surface3)"></i>Today</span></div>
   <div class="muted small" style="margin-top:10px">${LIVE?`Live rows from the players' phones · updated ${TEAMDATA&&TEAMDATA.at?new Date(TEAMDATA.at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}):"—"} · <button class="refresh" id="teamrefresh">Refresh</button>`:"Sketch: rows come from this device plus demo data. Once the app is connected, every row comes live from the players' phones."}</div></div>`;
   el.innerHTML=h;
-  el.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{teamFilter=b.dataset.f;renderTeam()});
+  el.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{teamFilter=b.dataset.f;renderTeam()});el.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>setStaffDay(+b.dataset.day));
   document.getElementById("tsort").onchange=e=>{teamSort=e.target.value;renderTeam()};
   el.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openPlayer(b.dataset.open));const tr=document.getElementById("teamrefresh");if(tr)tr.onclick=()=>{TEAMDATA=null;renderTeam()};
   animateRings(el);
