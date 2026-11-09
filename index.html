@@ -590,7 +590,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-09a</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-09b</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -1101,7 +1101,7 @@ function renderToday(){
   let h=`<div class="card hero"><div class="row"><div><div class="eyebrow">${P.dayType}</div><div class="big">${P.modeLabel}</div><div class="sub">${P.sub}</div></div>${triple(R.vals,132,`<span data-count="${R.score}">0</span><small>day score</small>`)}</div>
   <div class="goals">
     <button class="goal ${R.ci>=100?"done":""}" style="--c:var(--r1)" data-v="checkin"><span class="dot"></span><span class="t">Morning check-in<small>${c?"Sent at "+c.at+" · "+readyWord(rNow)+" "+rNow:"60 seconds · tells the staff how you feel"}</small></span><span class="p">${c?"✓":"0"}<small>${c?"":"/1"}</small></span><span class="chev">›</span></button>
-    <button class="goal ${R.sess>=100?"done":""}" style="--c:var(--r2)" data-go="s2"><span class="dot"></span><span class="t">${P.pitch?"Pitch targets":"Activation + mobility"}<small>${R.sessSub}</small></span><span class="p">${R.sessLabel}</span><span class="chev">›</span></button>
+    <button class="goal ${R.sess>=100?"done":""}" style="--c:var(--r2)" data-go="s2"><span class="dot"></span><span class="t">${P.pitch?"Pitch targets":(P.mobility&&P.mobility.length?"Activation + mobility":"Rest day")}<small>${R.sessSub}</small></span><span class="p">${R.sessLabel}</span><span class="chev">›</span></button>
     <button class="goal ${R.gym>=100?"done":""}" style="--c:var(--r3)" data-go="s3"><span class="dot"></span><span class="t">Gym session<small>${R.gymTotal?(R.gym>=100?"Session complete":P.gym.title):"No gym planned today"}</small></span><span class="p">${R.gymTotal?R.gymDone:"—"}<small>${R.gymTotal?"/"+R.gymTotal+" sets":""}</small></span><span class="chev">›</span></button>
   </div>
   <div class="perfect ${R.closed?"yes":""}"><div><b>${R.closed?"Perfect day ✓":"Close all three rings"}</b><br><span>${R.closed?"All three rings closed. Streak: "+streak()+" day"+(streak()===1?"":"s")+".":"Check-in, session, gym. Three rings closed = a perfect day."}</span></div><span class="pic">${ic(R.closed?"trophy":"target",28)}</span></div></div>`;
@@ -1129,6 +1129,9 @@ function renderToday(){
     else{const goal=r.vmax*t.speedGoal/100;const ok=res&&res.vmax>=goal;h+=`<div class="speedrule g"><div class="b">${t.speedGoal}%+<small>top speed goal</small></div><div><p>Reach at least <b>${goal.toFixed(1)} km/h</b> today. Your best is ${r.vmax.toFixed(1)} km/h.</p>${t.speedWork?`<p style="margin-top:6px"><span class="pill y" style="padding:3px 8px;font-size:10px;margin-right:6px">Speed work</span><b>${t.speedWork}</b></p>`:""}${res?`<p style="margin-top:6px"><span class="pill ${ok?"g":"w"}">${ok?"Goal hit":"Just under"} · ${res.vmax.toFixed(1)} km/h</span></p>`:""}<div class="sbar"><i style="left:${t.speedGoal}%"></i>${res?`<b style="left:${Math.min(100,res.vmax/r.vmax*100)}%"></b>`:""}</div></div></div>`}
     h+=res?`<div class="muted small" style="margin-top:10px">${t.note} Green ring closes at 90% of each target.</div>`:`<div class="wait"><div class="ic">${ic("clock",16)}</div><div>This ring fills itself. Your GPS unit sends the numbers to the staff right after the session.</div></div>`;
     h+=`</div></div></div>`}
+  else if(!P.mobility||!P.mobility.length){
+    /* 09.11.2026: day off / no session planned (no pitch, no mobility list) must not crash Today */
+    h+=`<div class="card step ${stCls(1)}" id="s2"><div class="stepnum">2</div><div class="shead"><div class="time">—<small>rest</small></div><div><div class="eyebrow">Step 2 · no session today</div><h2>${/day off/i.test((P.dayType||"")+" "+(P.modeLabel||""))?"Day off":"Nothing planned on the pitch"}</h2></div><span class="pill g">Rest</span></div><div style="font-weight:700;font-size:15.5px">Sleep, food, a walk. Your morning check-in still counts.</div><div class="muted small" style="margin-top:8px">${P.lastMin?`You played ${P.lastMin} minutes in the last match. `:""}Top speed: last exposure ${P.speedDays} day${P.speedDays===1?"":"s"} ago.</div></div>`}
   else{const m=st.mob[TK]||{};
     h+=`<div class="card step ${stCls(1)}" id="s2"><div class="stepnum">2</div><div class="shead"><div class="time">${sessT}<small>${cur===1?"now":cur>1?"done":"start"}</small></div><div><div class="eyebrow">Step 2 · no pitch today</div><h2>Mobility and flush</h2></div><span class="pill ${R.sess>=100?"g":""}">${R.sessLabel}</span></div><div class="check">${P.mobility.map((x,i)=>`<button data-mob="${i}" class="${m[i]?"on":""}"><span class="bx">${m[i]?"✓":""}</span><span class="t">${x.n}<small>${x.note}</small></span><span class="d">${x.d}</span></button>`).join("")}</div><div class="muted small" style="margin-top:10px">You played ${P.lastMin} minutes yesterday. Next pitch session is Tuesday. Top speed is covered: last exposure ${P.speedDays} day${P.speedDays===1?"":"s"} ago.</div></div>`}
   // step 3 gym
