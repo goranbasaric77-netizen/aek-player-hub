@@ -590,7 +590,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-09b</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-09c</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -1063,6 +1063,9 @@ function applyHistory(p,days){if(!days||!days.length)return;
   p.liveDayNames=wkDates.map(WD);
   p.readiness=wkDates.map(d=>{const x=byK[dkey(d)];return x&&x.h&&dkey(d)<TK?x.h.ready:null});
   p.total=H.filter(x=>x.h&&x.h.checkin).length;
+  /* 09.11.2026 (Goran): last session with GPS numbers (training or match), shown on Today when there is no pitch session */
+  const lastS=H.filter(x=>x.d.date<TK&&x.d.result&&x.d.result.td).sort((u,v)=>u.d.date<v.d.date?1:-1)[0];
+  p.lastSession=lastS?{date:lastS.date,plan:lastS.d.plan||null,result:lastS.d.result,match:!!(lastS.h&&lastS.h.match)}:null;
   /* 09.11.2026 (Goran): done vs plan shows the previous week until the new week has its first pitch session. */
   const doneOf=dates=>{const o={pitch:{td:[],hsr:[],spr:[]},gym:[],labels:[],gymLabels:[]};
     dates.forEach(d=>{const k=dkey(d);const x=byK[k];const pl=x&&x.d.plan;const has=k<TK&&pl&&pl.pitch&&pl.pitch.td&&x.d.result;
@@ -1106,6 +1109,12 @@ function renderToday(){
   </div>
   <div class="perfect ${R.closed?"yes":""}"><div><b>${R.closed?"Perfect day ✓":"Close all three rings"}</b><br><span>${R.closed?"All three rings closed. Streak: "+streak()+" day"+(streak()===1?"":"s")+".":"Check-in, session, gym. Three rings closed = a perfect day."}</span></div><span class="pic">${ic(R.closed?"trophy":"target",28)}</span></div></div>`;
   h+=weatherCard()+pushCard();
+  if(LIVE&&!P.pitch&&P.lastSession){const L=P.lastSession,r=L.result,t=(L.plan&&L.plan.pitch)||null,ref=P.ref||{};
+    const pc=(v,base)=>base?Math.round(v/base*100):null;
+    const tile=(k,v,unit,pct,lab)=>`<div class="kpi"><div class="k">${k}</div><div class="v">${v}<small>${unit}</small></div>${pct!=null?`<div class="muted small" style="margin-top:3px">${pct}% ${lab}</div>`:""}</div>`;
+    const lab=t?"of target":"of your match";const base=m=>t?t[m]:ref[m];
+    const when=L.date.toLocaleDateString("en-GB",{weekday:"short",day:"2-digit",month:"short"});const title=L.match?((L.plan&&L.plan.extra&&L.plan.extra.opp)||"Match"):((L.plan&&(L.plan.modeLabel||L.plan.dayType))||"Training");
+    h+=`<div class="card"><div class="head"><div><div class="eyebrow">Last session · ${when}</div><h2>${title}</h2></div><span class="pill ${L.match?"k":"y"}">${L.match?"Match · GPS":"Training · GPS"}</span></div><div class="kpis">${tile("Distance",fmt(Math.round(r.td)),"m",pc(r.td,base("td")),lab)}${tile("High speed",fmt(Math.round(r.hsr||0)),"m",pc(r.hsr||0,base("hsr")),lab)}${tile("Sprint",fmt(Math.round(r.spr||0)),"m",pc(r.spr||0,base("spr")),lab)}${tile("Top speed",(r.vmax||0).toFixed(1),"km/h",ref.vmax?Math.round((r.vmax||0)/ref.vmax*100):null,"of your best")}</div><div class="muted small" style="margin-top:4px">Your GPS numbers from the last session. ${L.match?"Match numbers are your reference for the next training targets.":"Compared with that day's targets."}</div></div>`}
   // last 7 days strip
   const days=progDays(R);
   const nPerf=days.filter(d=>perfectDay(d.v)&&(!d.today||R.closed)).length;
