@@ -576,30 +576,65 @@ body[data-live="1"] .sync{display:block}
 .spv{font-size:10px;font-weight:700;fill:var(--fg)!important;font-variant-numeric:tabular-nums}
 @media (max-width:420px){.spv{font-size:8px}}
 
-/* ===== speed card (13.11.2026): replaces "Week vs your own match" for players ===== */
-.spc .big{font-family:var(--display);font-weight:900;font-size:72px;line-height:.85;letter-spacing:-.01em}.spc .big small{font-size:22px;color:var(--muted);font-weight:700;margin-left:4px}
-.spc .row{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
-.spc .rec{text-align:right}.spc .rec b{display:block;font-family:var(--display);font-size:26px;line-height:1}.spc .rec span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
-.spc .track{position:relative;height:14px;background:var(--surface3);border-radius:7px;margin:14px 0 6px}
-.spc .track i{position:absolute;left:0;top:0;bottom:0;border-radius:7px;background:linear-gradient(90deg,#B38F00,var(--accent))}
-.spc .track em{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg);opacity:.5;left:95%}
-.spc .track span{position:absolute;top:18px;left:95%;transform:translateX(-50%);font-size:10px;color:var(--muted)}
-.spc .gap{margin-top:16px;font-size:14px}
-.spc .chips{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.spc .chip{background:var(--surface2);border-radius:12px;padding:8px 10px;flex:1;min-width:130px}
-.spc .chip b{display:block;font-family:var(--display);font-size:22px;line-height:1}.spc .chip span{font-size:11px;color:var(--muted)}.spc .chip.next b{color:var(--r2)}
-.spc.gold{background:radial-gradient(120% 90% at 100% 0%,rgba(255,209,0,.35),transparent 60%),var(--surface);border-color:#6B5900}
-.spc .badge{display:inline-block;background:var(--accent);color:#111;font:900 13px var(--display);letter-spacing:.12em;padding:4px 10px;border-radius:999px;margin-bottom:8px}
-.spc .mtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.spc .mtop b{font-family:var(--display);font-size:22px}.spc .mtop span{color:var(--muted);font-size:13px;white-space:nowrap}
-.spc .hl{display:flex;align-items:center;gap:10px;background:rgba(255,209,0,.12);border:1px solid rgba(255,209,0,.35);border-radius:14px;padding:10px 12px;margin:12px 0;color:var(--accent)}
-.spc .hl b{font-family:var(--display);font-size:19px;display:block;line-height:1.05;color:var(--fg)}.spc .hl span{font-size:12px;color:var(--muted)}
-.spc .grid4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.spc .st{background:var(--surface2);border-radius:14px;padding:10px 12px}
-.spc .st b{font-family:var(--display);font-size:28px;line-height:1;display:block}.spc .st small{font-size:15px;color:var(--muted);font-family:var(--body)}.spc .st span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.spc .st em{display:block;font-style:normal;font-size:11px;color:var(--r2);margin-top:3px}.spc .st em.m{color:var(--muted)}
-.spc .lb{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line)}.spc .lb:last-of-type{border-bottom:0}
-.spc .lb .pos{width:18px;font:800 18px var(--display);color:var(--muted);text-align:center}.spc .lb .nm{flex:1;font:700 18px var(--display)}.spc .lb .sp{font:900 22px var(--display)}
-.spc .lb.first .pos{color:var(--accent)}.spc .lb.me{background:rgba(255,209,0,.10);border-radius:10px}.spc .lb.sep{margin-top:6px;border-top:1px dashed var(--line)}
-.spc .av{width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--surface3);flex:none;display:grid;place-items:center;font:800 12px var(--display);color:var(--muted)}.spc .av img{width:100%;height:100%;object-fit:cover;object-position:top}
-.spc .sub{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+/* ===== speed card v2 (13.11.2026): interactive. Gauge, tabs (speed, match, squad race), head to head, badges ===== */
+.sp2{padding:0!important;overflow:hidden}
+.sp2 .s2hero{position:relative;padding:16px 16px 8px;background:radial-gradient(130% 100% at 100% 0%,color-mix(in srgb,var(--accent) 30%,transparent),transparent 55%)}
+.sp2 .s2hero.gold{background:radial-gradient(140% 110% at 50% 0%,color-mix(in srgb,var(--accent) 55%,transparent),transparent 65%)}
+.sp2 .s2who{display:flex;align-items:center;gap:10px}.sp2 .s2who .ph{width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid var(--accent);background:var(--surface3);display:grid;place-items:center;font:800 15px var(--display);flex:none}.sp2 .s2who .ph img{width:100%;height:100%;object-fit:cover;object-position:top}
+.sp2 .s2who .s2nm{font:900 22px var(--display);line-height:1}
+.sp2 .pbb{display:inline-block;background:var(--accent);color:#111;font:900 12px var(--display);letter-spacing:.12em;padding:3px 9px;border-radius:999px;margin-top:4px}
+.sp2 .s2gauge{margin:4px auto 0;width:100%;max-width:340px}.sp2 .s2gauge svg{width:100%;display:block}
+.sp2 .gnum{text-align:center;margin-top:-6px}.sp2 .gnum b{font:900 76px var(--display);line-height:.82;display:inline-block;font-variant-numeric:tabular-nums}.sp2 .gnum span{font:700 16px var(--body);color:var(--muted);letter-spacing:.1em;margin-left:6px}
+.sp2 .togo{display:flex;justify-content:center;gap:8px;margin:10px 0 2px;font-size:14px;flex-wrap:wrap}.sp2 .togo b{color:var(--accent)}
+.sp2 .replay{position:absolute;right:12px;top:12px;background:var(--surface2);border:1px solid var(--line);color:var(--fg);border-radius:999px;font:700 11px var(--body);letter-spacing:.1em;padding:6px 10px;text-transform:uppercase}
+.sp2 .stabs{display:flex;gap:6px;padding:10px 12px 0}.sp2 .stabs button{flex:1;border:0;border-radius:14px;padding:9px 4px 8px;background:var(--surface2);color:var(--muted);font:800 15px var(--display);letter-spacing:.06em;text-transform:uppercase;transition:background .2s,color .2s;display:flex;flex-direction:column;align-items:center;gap:2px}
+.sp2 .stabs button.on{color:#111}.sp2 .stabs button.on[data-t=speed]{background:var(--r1)}.sp2 .stabs button.on[data-t=match]{background:var(--r2)}.sp2 .stabs button.on[data-t=squad]{background:var(--r3)}
+.sp2 .pane{padding:14px 14px 16px;display:none}.sp2 .pane.on{display:block;animation:sp2in .35s ease}@keyframes sp2in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sp2 h3{font:900 22px var(--display);margin:0 0 8px;line-height:1}
+.sp2 .bars{display:flex;align-items:flex-end;gap:6px;height:118px;margin-top:6px;padding-top:18px;position:relative}
+.sp2 .bars .rec{position:absolute;left:0;right:0;border-top:2px dashed var(--accent);font-size:10px;color:var(--accent);text-align:right;padding-right:2px;line-height:1.2}
+.sp2 .bars .p95{position:absolute;left:0;right:0;border-top:1px dashed var(--muted);font-size:10px;color:var(--muted);line-height:1.2}
+.sp2 .s2bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;cursor:pointer;background:none;border:0;padding:0;color:inherit}
+.sp2 .s2bar i{display:block;width:100%;border-radius:7px 7px 3px 3px;background:var(--surface3);height:0;transition:height .7s cubic-bezier(.2,.9,.2,1),background .2s}
+.sp2 .s2bar.m i{background:color-mix(in srgb,var(--fg) 30%,var(--surface3))}.sp2 .s2bar.hit i{background:var(--r2)}.sp2 .s2bar.on i{background:var(--accent)}
+.sp2 .s2bar span{font-size:10px;color:var(--muted);margin-top:4px}
+.sp2 .tipline{min-height:22px;margin-top:8px;font-size:13px;color:var(--muted)}.sp2 .tipline b{color:var(--fg);font:800 17px var(--display)}
+.sp2 .s2chips{display:flex;gap:8px;margin-top:10px}.sp2 .s2chip{flex:1;background:var(--surface2);border-radius:14px;padding:10px 12px}.sp2 .s2chip b{display:block;font:900 24px var(--display);line-height:1}.sp2 .s2chip span{font-size:11.5px;color:var(--muted)}
+.sp2 .s2chip.nx{background:linear-gradient(135deg,color-mix(in srgb,var(--r2) 24%,transparent),var(--surface2))}.sp2 .s2chip.nx b{color:var(--r2)}
+.sp2 .mhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.sp2 .mhead b{font:900 24px var(--display)}.sp2 .mhead span{color:var(--muted);font-size:13px;white-space:nowrap}
+.sp2 .flash{display:flex;gap:10px;align-items:center;margin:10px 0 12px;padding:10px 12px;border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 32%,transparent),color-mix(in srgb,var(--accent) 6%,transparent));border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);color:var(--accent)}
+.sp2 .flash .z{display:grid;animation:sp2pulse 1.4s infinite}@keyframes sp2pulse{50%{transform:scale(1.25) rotate(-8deg)}}
+.sp2 .flash b{font:900 20px var(--display);display:block;line-height:1.05;color:var(--fg)}.sp2 .flash span{font-size:12px;color:var(--muted)}
+.sp2 .stat{background:var(--surface2);border-radius:16px;padding:10px 12px;margin-bottom:8px;cursor:pointer;position:relative;width:100%;border:0;color:inherit;text-align:left;display:block;font:inherit}
+.sp2 .stat .s2top{display:flex;justify-content:space-between;align-items:baseline}.sp2 .stat .s2top span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.sp2 .stat .s2top b{font:900 28px var(--display)}.sp2 .stat .s2top b small{font:600 14px var(--body);color:var(--muted)}
+.sp2 .cmp{position:relative;height:10px;background:var(--surface3);border-radius:5px;margin:6px 0 4px}.sp2 .cmp i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px;transition:width .9s cubic-bezier(.2,.9,.2,1)}
+.sp2 .cmp em{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg)}
+.sp2 .stat .ft{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}.sp2 .up{color:var(--r2);font-weight:700}.sp2 .dn{color:var(--r3);font-weight:700}
+.sp2 .rk{position:absolute;right:10px;top:-8px;background:var(--accent);color:#111;font:900 12px var(--display);padding:2px 8px;border-radius:999px;letter-spacing:.06em}
+.sp2 .gobtn{width:100%;border:0;border-radius:14px;background:var(--r3);color:#08111c;font:900 20px var(--display);letter-spacing:.1em;padding:10px;margin-bottom:10px}
+.sp2 .lane{position:relative;height:44px;border-bottom:1px dashed var(--line);cursor:pointer}.sp2 .lane:last-child{border-bottom:0}
+.sp2 .lane .fin{position:absolute;right:84px;top:0;bottom:0;border-right:2px dashed var(--muted);opacity:.6}
+.sp2 .run{position:absolute;left:0;top:5px;display:flex;flex-direction:row-reverse;align-items:center;gap:6px}
+.sp2 .run .s2av{width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--surface3);display:grid;place-items:center;font:800 12px var(--display);color:var(--muted);border:2px solid transparent;flex:none}.sp2 .run .s2av img{width:100%;height:100%;object-fit:cover;object-position:top}
+.sp2 .lane.s2me .s2av{border-color:var(--accent)}.sp2 .run .s2n{font:800 15px var(--display);white-space:nowrap}
+.sp2 .lane .s2spv{position:absolute;right:0;top:9px;font:900 22px var(--display);width:50px;text-align:right;opacity:0;transition:opacity .3s}
+.sp2 .lane .md{position:absolute;right:58px;top:11px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:900 13px var(--display);color:#111;opacity:0;transition:opacity .3s}
+.sp2 .lane .md.m1{background:#FFD100}.sp2 .lane .md.m2{background:#C9CED6}.sp2 .lane .md.m3{background:#D08A4E}
+.sp2 .lane.done .s2spv,.sp2 .lane.done .md{opacity:1}
+.sp2 .hint{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
+.sp2 .bdt{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:4px 14px 8px}
+.sp2 .s2badges{display:flex;gap:8px;padding:0 12px 10px;overflow-x:auto}.sp2 .bd{flex:none;width:92px;background:var(--surface2);border-radius:16px;padding:10px 6px;text-align:center;cursor:pointer;border:1px solid transparent;color:var(--muted);font:inherit}
+.sp2 .bd .bic{opacity:.35;display:grid;place-items:center}.sp2 .bd.on{border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 22%,transparent),var(--surface2));color:var(--accent)}.sp2 .bd.on .bic{opacity:1}
+.sp2 .bd b{display:block;font:800 13px var(--display);line-height:1.1;margin-top:4px;color:var(--fg)}.sp2 .bd span{font-size:10px;color:var(--muted)}
+.sp2 .bmsg{margin:0 12px 14px;font-size:12.5px;color:var(--muted);min-height:18px;text-align:center}
+.sp2sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:60}.sp2sheet.on{display:flex}
+.sp2sheet .sh{width:100%;max-width:440px;background:var(--surface);color:var(--fg);border-radius:24px 24px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));animation:sp2up .3s ease}@keyframes sp2up{from{transform:translateY(100%)}to{transform:none}}
+.sp2sheet .s2vs{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.sp2sheet .s2vs .s2p{text-align:center;width:38%}.sp2sheet .s2vs .ph{width:58px;height:58px;border-radius:50%;overflow:hidden;border:2px solid var(--line);margin:0 auto;display:grid;place-items:center;background:var(--surface3);font:800 18px var(--display);color:var(--muted)}.sp2sheet .s2vs .ph img{width:100%;height:100%;object-fit:cover;object-position:top}
+.sp2sheet .s2vs .s2p b{display:block;font:800 17px var(--display);margin-top:4px}.sp2sheet .s2vs .x{font:900 26px var(--display);color:var(--muted)}
+.sp2sheet .duel{margin-bottom:10px}.sp2sheet .duel .lab{text-align:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.sp2sheet .duel .s2row{display:flex;align-items:center;gap:8px}.sp2sheet .duel b{font:900 22px var(--display);width:52px}.sp2sheet .duel b:last-child{text-align:right}
+.sp2sheet .duel .tr{flex:1;display:flex;height:10px;gap:3px}.sp2sheet .duel .tr i{display:block;height:100%;border-radius:5px;background:var(--surface3)}.sp2sheet .duel .tr i.w{background:var(--accent)}
+.sp2sheet .cls{width:100%;border:0;border-radius:14px;background:var(--surface2);color:var(--fg);font:800 16px var(--display);padding:10px;margin-top:6px}
+@media (prefers-reduced-motion:reduce){.sp2 .flash .z{animation:none}}
 </style>
 </head>
 <body>
@@ -615,7 +650,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-13a</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-13b</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -660,6 +695,7 @@ body[data-live="1"] .sync{display:block}
 <script>
 /* ---------- icons (stroke SVG, no emoji) ---------- */
 const IC={
+  flag:'<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',
   flame:'<path d="M12 22c4-1 7-4 7-8 0-3-2-5-3-7-1 2-2 3-3 3 0-3-1-6-3-8-1 3-3 5-4 7-1 2-2 3-2 5 0 4 3 7 8 8z"/>',
   check:'<path d="M20 6L9 17l-5-5"/>',
   trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
@@ -953,36 +989,99 @@ document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v)
 function show(v){if(!P&&v!=="team")return;view=v;document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));["team","today","checkin","progress","week"].forEach(k=>document.getElementById("v-"+k).classList.toggle("hidden",k!==v));document.getElementById("scroll").scrollTop=0;render(v)}
 function renderAll(){const d=TODAY.toLocaleDateString("en-GB",{weekday:"long",day:"2-digit",month:"long"});document.getElementById("h-date").textContent=(innerWidth<600?TODAY.toLocaleDateString("en-GB",{weekday:"short",day:"2-digit",month:"short"}):d)+" · tap to switch";document.getElementById("h-name").textContent=P.name;setAv("h-av",P);setAv("s-av",P);document.getElementById("s-name").textContent=P.short;document.getElementById("s-pos").textContent=P.pos;const s=streak();document.getElementById("h-streak").textContent=s;document.getElementById("h-streakwrap").classList.toggle("hot",s>=3);const c=todayCheckin();document.querySelectorAll(".dotn-s").forEach(e=>e.classList.toggle("hidden",!!c));show(view)}
 function render(v){clearTimers();const el=document.getElementById("v-"+v);el.classList.remove("enter");({team:renderTeam,today:renderToday,checkin:renderCheckin,progress:renderProgress,week:renderWeek})[v]();void el.offsetWidth;el.classList.add("enter")}
-/* ===== speed card (13.11.2026, Goran): what players care about. Top speed vs own record, last match, squad top 5.
-   Data comes from the platform bridge in plan extra_json.speed; without it the old weekly load chart stays. ===== */
+/* ===== speed card v2 (13.11.2026, Goran): interactive. What players care about: top speed vs own record,
+   last match vs own season, squad race and head to head. Data: platform bridge, plan extra_json.speed.
+   speedCard(S) returns the HTML; speedCardInit(root) starts the gauge and wires taps. No data = old weekly chart. ===== */
+let sp2Tab="speed",sp2Raced=false;
+const SP2={vmin:20,vmax:36};
+function sp2Who(id){return ROSTER.find(x=>x.id===id)||{id:id,short:id,av:"?",photo:false}}
+function sp2Ph(id){const r=sp2Who(id);return r.photo!==false?`<img src="photos/${r.id}.webp" alt="" loading="lazy">`:r.av}
 function speedCard(S){
-  const f1=v=>(+v).toFixed(1);
-  const dshort=iso=>new Date(iso+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(",","");
-  const who=id=>ROSTER.find(x=>x.id===id)||{id:id,short:id,av:"?",photo:false};
-  const av=id=>{const r=who(id);return `<span class="av">${r.photo!==false?`<img src="photos/${r.id}.webp" alt="" loading="lazy">`:r.av}</span>`};
-  const me=P.id;let h="";
-  if(S.pb){
-    h+=`<div class="card c6 spc gold"><span class="badge">NEW PERSONAL BEST</span><div class="row"><div class="big">${f1(S.top)}<small>km/h</small></div><div class="rec"><b>+${f1(S.top-S.prev_record)}</b><span>on your record</span></div></div><div class="gap">Previous record ${f1(S.prev_record)} km/h. ${S.rank===1?"Fastest in the squad "+S.label+".":"#"+S.rank+" in the squad "+S.label+"."}</div>`;
-  }else{
-    const pct=Math.max(0,Math.min(100,S.pct||0));
-    h+=`<div class="card c6 spc"><div class="eyebrow">Your top speed · ${S.label}</div><div class="row" style="margin-top:6px"><div class="big">${S.top?f1(S.top):"–"}<small>km/h</small></div><div class="rec"><b>${f1(S.record)}</b><span>your record</span></div></div>
-    <div class="track"><i style="width:${pct}%"></i><em></em><span>95%</span></div>
-    <div class="gap">${S.top?`${f1(S.record-S.top)} km/h from your record · ${S.pct}% of your best`:"No speed data "+S.label+" yet."}</div>
-    <div class="chips">${S.last95_days!=null?`<div class="chip"><b>${S.last95_days} day${S.last95_days===1?"":"s"}</b><span>since you last hit 95% (${f1(S.speed95)}+ km/h)</span></div>`:""}${S.today_speed?`<div class="chip next"><b>Today</b><span>speed day · aim for ${f1(S.today_speed)}+ km/h</span></div>`:S.next_speed_date?`<div class="chip next"><b>${dshort(S.next_speed_date)}</b><span>next speed day</span></div>`:""}</div>`;
-  }
-  const M=S.match;
-  if(M){const r3=(n,t)=>n&&n<=3?`<em>#${n} in the squad</em>`:`<em class="m">${t}</em>`;
-    h+=`<div class="sub"><div class="eyebrow">Your last match</div><div class="mtop"><b>AEK – ${M.opp}</b><span>${dshort(M.date)} · ${M.min}′</span></div>
-    ${M.fastest?`<div class="hl">${ic("bolt",22)}<div><b>Fastest match of your season</b><span>${f1(M.v)} km/h · before this your best match was ${f1(M.prev_best)} km/h</span></div></div>`:""}
-    <div class="grid4"><div class="st"><span>Top speed</span><b>${M.v?f1(M.v):"–"} <small>km/h</small></b>${r3(M.v_rank,"top speed in the match")}</div>
-    <div class="st"><span>Distance</span><b>${(M.td/1000).toFixed(1)} <small>km</small></b>${r3(M.td_rank,M.usual_td&&M.min>=80?"your usual: "+(M.usual_td/1000).toFixed(1)+" km":"in "+M.min+" minutes")}</div>
-    <div class="st"><span>High speed</span><b>${fmt(M.hsr)} <small>m</small></b><em class="m">above 19.8 km/h</em></div>
-    <div class="st"><span>Sprint</span><b>${fmt(M.spr)} <small>m</small></b><em class="m">above 25.2 km/h</em></div></div></div>`}
-  if(S.top5&&S.top5.length){
-    const mine=S.top5.findIndex(x=>x.id===me);
-    h+=`<div class="sub"><div class="eyebrow">Squad · fastest ${S.label}</div>${S.top5.map((x,i)=>`<div class="lb ${i===0?"first":""} ${x.id===me?"me":""}"><span class="pos">${i+1}</span>${av(x.id)}<span class="nm">${x.id===me?"You":who(x.id).short}</span><span class="sp">${f1(x.v)}</span></div>`).join("")}${mine<0&&S.rank&&S.top?`<div class="lb me sep"><span class="pos">${S.rank}</span>${av(me)}<span class="nm">You</span><span class="sp">${f1(S.top)}</span></div>`:""}<div class="muted small" style="margin-top:8px">Top speed in training and matches, Monday to Sunday. Only the top 5 are shown.</div></div>`;
-  }
-  return h+`</div>`;
+  const f1=v=>(+v).toFixed(1),M=S.match,Z=M&&M.season,me=P.id,dm=iso=>iso.slice(8)+"."+iso.slice(5,7);
+  const tab=(t,icn,lab)=>`<button data-t="${t}" class="${sp2Tab===t?"on":""}">${ic(icn,18)}${lab}</button>`;
+  if(sp2Tab==="match"&&!M)sp2Tab="speed";
+  let h=`<div class="card c6 sp2" id="sp2"><div class="s2hero ${S.pb?"gold":""}"><button class="replay" data-sp2="replay">Replay</button>
+    <div class="s2who"><span class="ph">${sp2Ph(me)}</span><div><div class="eyebrow">Your top speed · ${S.label}</div><div class="s2nm">${P.short||P.name||""}</div>${S.pb?`<span class="pbb">NEW PERSONAL BEST</span>`:""}</div></div>
+    <div class="s2gauge"><svg viewBox="0 0 340 186" aria-hidden="true"><defs><linearGradient id="sp2g" x1="0" x2="1"><stop offset="0" stop-color="var(--r3)"/><stop offset=".55" stop-color="var(--r2)"/><stop offset="1" stop-color="var(--r1)"/></linearGradient></defs>
+      <path d="M30 170 A140 140 0 0 1 310 170" fill="none" stroke="var(--surface3)" stroke-width="18" stroke-linecap="round"/>
+      <path class="arc" d="M30 170 A140 140 0 0 1 310 170" fill="none" stroke="url(#sp2g)" stroke-width="18" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440"/>
+      <g class="ticks"></g><g class="needle" style="transform-origin:170px 170px;transform:rotate(-90deg)"><line x1="170" y1="170" x2="170" y2="52" stroke="var(--fg)" stroke-width="4" stroke-linecap="round"/><circle cx="170" cy="170" r="9" fill="var(--fg)"/></g></svg></div>
+    <div class="gnum"><b class="num">${S.top?"0.0":"–"}</b><span>km/h</span></div>
+    <div class="togo">${S.pb?`<span><b>+${f1(S.top-S.prev_record)} km/h</b> on your old record (${f1(S.prev_record)})</span>`:S.top?`<span><b>${f1(S.record-S.top)} km/h</b> to your record</span><span>·</span><span>${S.pct}% of your best</span>`:`<span>No speed data ${S.label} yet. Your record: <b>${f1(S.record)} km/h</b></span>`}</div></div>
+  <div class="stabs">${tab("speed","bolt","Speed")}${M?tab("match","ball","Match"):""}${S.top5&&S.top5.length?tab("squad","flag","Squad race"):""}</div>`;
+  // speed
+  const ses=S.sessions||[];
+  h+=`<div class="pane ${sp2Tab==="speed"?"on":""}" data-p="speed">${ses.length?`<h3>Your last sessions</h3><div class="bars"><div class="rec" data-v="${S.record}">record ${f1(S.record)}</div><div class="p95" data-v="${S.speed95}">95%</div>${ses.map((x,i)=>`<button class="s2bar ${x.m?"m":""} ${x.v>=S.speed95?"hit":""}" data-i="${i}" data-v="${x.v}"><i></i><span>${dm(x.d)}</span></button>`).join("")}</div><div class="tipline">Tap a bar to see the day.</div>`:""}
+    <div class="s2chips">${S.last95_days!=null?`<div class="s2chip"><b>${S.last95_days} day${S.last95_days===1?"":"s"}</b><span>since you last hit 95% (${f1(S.speed95)}+ km/h)</span></div>`:""}${S.today_speed?`<div class="s2chip nx"><b>TODAY</b><span>speed day · beat ${f1(S.today_speed)} km/h</span></div>`:S.next_speed_date?`<div class="s2chip nx"><b>${new Date(S.next_speed_date+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short"})} ${dm(S.next_speed_date)}</b><span>your next speed day</span></div>`:""}</div></div>`;
+  // match
+  if(M){const stat=(key,lab,val,unit,avg,best,rank,dec,avl)=>{const max=Math.max(val,best||val,avg||val)*1.08,dv=avg?val-avg:0,pc=avg?Math.round(dv/avg*100):0,show=v=>dec?f1(v):fmt(v);
+      return `<button class="stat" data-best="${best!=null?show(best)+" "+unit:""}">${rank&&rank<=3?`<span class="rk">#${rank} IN SQUAD</span>`:""}<div class="s2top"><span>${lab}</span><b>${show(val)} <small>${unit}</small></b></div>
+      <div class="cmp"><i data-w="${val/max*100}" style="background:${dv>=0?"var(--r2)":"var(--r3)"}"></i>${avg?`<em style="left:${avg/max*100}%"></em>`:""}</div>
+      <div class="ft"><span data-o="${avg?avl+" "+show(avg):"in "+M.min+" minutes"}">${avg?avl+" "+show(avg):"in "+M.min+" minutes"}</span>${avg?`<span class="${dv>=0?"up":"dn"}">${dv>=0?"▲":"▼"} ${Math.abs(pc)}%</span>`:""}</div></button>`};
+    const full=M.min>=45&&Z;
+    h+=`<div class="pane ${sp2Tab==="match"?"on":""}" data-p="match"><div class="mhead"><b>AEK – ${M.opp}</b><span>${dm(M.date)} · ${M.min}′</span></div>
+      ${M.fastest?`<div class="flash"><span class="z">${ic("bolt",26)}</span><div><b>Fastest match of your season</b><span>${f1(M.v)} km/h · your best match before was ${f1(M.prev_best)}</span></div></div>`:`<div style="height:10px"></div>`}
+      ${M.v?stat("v","Top speed",M.v,"km/h",M.prev_best,M.prev_best?Math.max(M.v,M.prev_best):null,M.v_rank,1,"your best match before"):""}
+      ${stat("td","Distance",M.td,"m",full?Z.td.avg:0,full?Z.td.best:null,full?M.td_rank:0,0,"your season average")}${stat("hsr","High speed",M.hsr,"m",full?Z.hsr.avg:0,full?Z.hsr.best:null,0,0,"your season average")}${stat("spr","Sprint",M.spr,"m",full?Z.spr.avg:0,full?Z.spr.best:null,0,0,"your season average")}
+      <div class="hint">${full?"White line = your season average. Tap a tile for your season best.":"Short appearance: numbers are for your minutes on the pitch."}</div></div>`}
+  // squad race
+  if(S.top5&&S.top5.length){const T=S.top5.map(x=>({id:x.id,v:x.v,rec:x.rec,mv:x.mv,me:x.id===me}));
+    if(!T.some(x=>x.me)&&S.top)T.push({id:me,v:S.top,rec:S.record,mv:M&&M.v,me:true,pos:S.rank});
+    h+=`<div class="pane ${sp2Tab==="squad"?"on":""}" data-p="squad"><button class="gobtn" data-sp2="go">GO</button><div class="lanes">${T.map((x,i)=>`<div class="lane ${x.me?"s2me":""}" data-id="${x.id}" data-v="${x.v}" data-rec="${x.rec||""}" data-mv="${x.mv||""}"><div class="fin"></div><div class="run"><span class="s2av">${sp2Ph(x.id)}</span><span class="s2n">${x.me?"You":sp2Who(x.id).short}</span></div>${i<3&&!x.pos?`<span class="md m${i+1}">${i+1}</span>`:x.pos?`<span class="md" style="background:var(--surface3);color:var(--fg)">${x.pos}</span>`:""}<span class="s2spv">${f1(x.v)}</span></div>`).join("")}</div>
+      <div class="hint">Top speed ${S.label}, training and matches. Tap a teammate to go head to head.</div></div>`}
+  // badges
+  const B=[["bolt","Fastest match","of your season",!!(M&&M.fastest),"Your top speed in a match beat every match before."],
+    ["trend","Top 3 speed","in the last match",!!(M&&M.v_rank&&M.v_rank<=3),"Be one of the three fastest players in a match."],
+    ["target","95% club",S.label,!!(S.top&&S.top>=S.speed95),"Hit "+f1(S.speed95)+" km/h or more in a week."],
+    ["trophy","New record","personal best",!!S.pb,"Run faster than "+f1(S.record)+" km/h."+(S.top&&!S.pb?" You are "+f1(S.record-S.top)+" km/h away "+S.label+".":"")],
+    ["flag","Fastest in squad",S.label,S.rank===1,"Finish the week with the top speed in the squad."]];
+  h+=`<div class="bdt">Badges</div><div class="s2badges">${B.map(b=>`<button class="bd ${b[3]?"on":""}" data-msg="${(b[3]?"Unlocked. ":"Locked. ")+b[4]}"><span class="bic">${ic(b[0],26)}</span><b>${b[1]}</b><span>${b[2]}</span></button>`).join("")}</div><div class="bmsg">Tap a badge.</div></div>`;
+  return h;
+}
+function speedCardInit(root){
+  const el=(root||document).querySelector("#sp2");if(!el||!P.extra||!P.extra.speed)return;
+  const S=P.extra.speed,f1=v=>(+v).toFixed(1),still=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  const ang=v=>-90+180*(Math.min(Math.max(v,SP2.vmin),SP2.vmax)-SP2.vmin)/(SP2.vmax-SP2.vmin);
+  const pt=(v,r)=>{const a=(ang(v)-90)*Math.PI/180;return [170+r*Math.cos(a),170+r*Math.sin(a)]};
+  let tk="";[[S.speed95,"95%","var(--muted)"],[S.record,"RECORD "+f1(S.record),"var(--accent)"]].forEach(([v,t,c])=>{if(!v)return;const [x1,y1]=pt(v,128),[x2,y2]=pt(v,156),[xt,yt]=pt(v,112);
+    tk+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="3"/><text x="${xt}" y="${yt}" fill="${c}" font-size="11" font-weight="700" text-anchor="middle">${t}</text>`});
+  [20,24,28,32,36].forEach(v=>{const [x,y]=pt(v,176);tk+=`<text x="${x}" y="${y+4}" fill="var(--muted)" font-size="10" text-anchor="middle">${v}</text>`});
+  el.querySelector(".ticks").innerHTML=tk;
+  const play=()=>{if(!S.top)return;const n=el.querySelector(".needle"),a=el.querySelector(".arc"),num=el.querySelector(".num"),off=440*(1-(ang(S.top)+90)/180);
+    if(still){n.style.transform=`rotate(${ang(S.top)}deg)`;a.style.strokeDashoffset=off;num.textContent=f1(S.top);return}
+    n.style.transition="none";n.style.transform="rotate(-90deg)";a.style.transition="none";a.style.strokeDashoffset=440;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{n.style.transition="transform 1.6s cubic-bezier(.2,.9,.25,1.05)";n.style.transform=`rotate(${ang(S.top)}deg)`;
+      a.style.transition="stroke-dashoffset 1.6s cubic-bezier(.2,.9,.25,1)";a.style.strokeDashoffset=off;
+      const t0=performance.now();(function k(t){const p=Math.min(1,(t-t0)/1500);num.textContent=f1(S.top*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(k)})(t0)}))};
+  play();el.querySelector('[data-sp2="replay"]').onclick=play;
+  if(S.pb&&typeof confetti==="function"){const key="pb:"+S.top_date;if(load(key,0)!==1){save(key,1);setTimeout(confetti,900)}}
+  // session bars
+  const hh=v=>Math.max(4,(v-18)/(SP2.vmax-18)*100);
+  el.querySelectorAll(".bars .rec,.bars .p95").forEach(x=>x.style.bottom=hh(+x.dataset.v)+"%");
+  const bars=el.querySelectorAll(".s2bar");setTimeout(()=>bars.forEach(b=>b.querySelector("i").style.height=hh(+b.dataset.v)+"%"),still?0:200);
+  bars.forEach(b=>b.onclick=()=>{bars.forEach(x=>x.classList.toggle("on",x===b));const x=S.sessions[b.dataset.i];
+    el.querySelector(".tipline").innerHTML=`<b>${f1(x.v)} km/h</b> · ${x.d.slice(8)}.${x.d.slice(5,7)} · ${x.m?"match":"training"} · ${Math.round(x.v/S.record*100)}% of your record${x.v>=S.speed95?" · 95% hit":""}`});
+  // match bars and tiles
+  const matchIn=()=>el.querySelectorAll(".cmp i").forEach(i=>{i.style.width="0";setTimeout(()=>i.style.width=i.dataset.w+"%",80)});
+  el.querySelectorAll(".stat").forEach(s=>s.onclick=()=>{const f=s.querySelector(".ft span");if(!s.dataset.best)return;f.textContent=f.textContent===f.dataset.o?"your season best "+s.dataset.best:f.dataset.o});
+  // race
+  const lanes=[...el.querySelectorAll(".lane")],vs=lanes.map(l=>+l.dataset.v),vmn=Math.min(...vs)-1.2,vmx=Math.max(...vs);
+  const race=()=>{sp2Raced=true;const box=el.querySelector(".lanes");lanes.forEach((l,i)=>{const r=l.querySelector(".run"),w=Math.max(0,box.clientWidth-88-r.offsetWidth);l.classList.remove("done");r.style.transition="none";r.style.left="0px";
+      const dur=still?0:2.6*(vmx-vmn)/(vs[i]-vmn)*0.62;requestAnimationFrame(()=>requestAnimationFrame(()=>{r.style.transition=`left ${dur}s cubic-bezier(.35,.05,.3,1)`;r.style.left=w+"px"}));setTimeout(()=>l.classList.add("done"),dur*1000)})};
+  const go=el.querySelector('[data-sp2="go"]');if(go)go.onclick=race;
+  // head to head
+  let sheet=document.getElementById("sp2sheet");if(!sheet){sheet=document.createElement("div");sheet.id="sp2sheet";sheet.className="sp2sheet";sheet.innerHTML=`<div class="sh"></div>`;document.body.appendChild(sheet);sheet.onclick=e=>{if(e.target===sheet)sheet.classList.remove("on")}}
+  lanes.forEach(l=>l.onclick=()=>{if(l.classList.contains("s2me"))return;const id=l.dataset.id,M=S.match;
+    const duel=(lab,a,b)=>a&&b?`<div class="duel"><div class="lab">${lab}</div><div class="s2row"><b>${f1(a)}</b><div class="tr"><i class="${a>=b?"w":""}" style="flex:${a-18}"></i><i class="${b>a?"w":""}" style="flex:${b-18}"></i></div><b>${f1(b)}</b></div></div>`:"";
+    sheet.querySelector(".sh").innerHTML=`<div class="s2vs"><div class="s2p"><div class="ph">${sp2Ph(P.id)}</div><b>You</b></div><div class="x">VS</div><div class="s2p"><div class="ph">${sp2Ph(id)}</div><b>${sp2Who(id).short}</b></div></div>
+      ${duel("Top speed "+S.label,S.top,+l.dataset.v)}${duel("Personal record",S.record,+l.dataset.rec)}${duel("Top speed, last match",M&&M.v,+l.dataset.mv)}<button class="cls">Close</button>`;
+    sheet.classList.add("on");sheet.querySelector(".cls").onclick=()=>sheet.classList.remove("on")});
+  // tabs
+  el.querySelectorAll(".stabs button").forEach(b=>b.onclick=()=>{sp2Tab=b.dataset.t;el.querySelectorAll(".stabs button").forEach(x=>x.classList.toggle("on",x===b));
+    el.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.dataset.p===sp2Tab));if(sp2Tab==="match")matchIn();if(sp2Tab==="squad"&&!sp2Raced)race()});
+  if(sp2Tab==="match")matchIn();if(sp2Tab==="squad")race();
+  // badges
+  el.querySelectorAll(".bd").forEach(b=>b.onclick=()=>{el.querySelector(".bmsg").textContent=b.dataset.msg});
 }
 function hookTips(el,pairs){pairs.forEach(([cid,tid])=>{const svg=document.getElementById(cid),tip=document.getElementById(tid);if(!svg||!tip)return;const mv=e=>{const t=e.target.closest("[data-tip]");if(!t){tip.classList.remove("on");return}const r=svg.getBoundingClientRect(),b=t.getBoundingClientRect();tip.textContent=t.dataset.tip;tip.style.left=(b.left-r.left+b.width/2)+"px";tip.style.top=(b.top-r.top)+"px";tip.classList.add("on")};svg.addEventListener("pointermove",mv);svg.addEventListener("pointerdown",mv);svg.addEventListener("pointerleave",()=>tip.classList.remove("on"))})}
 
@@ -1333,6 +1432,7 @@ function renderProgress(){
   el.innerHTML=h;
   el.querySelectorAll("#dmetric button").forEach(b=>b.onclick=()=>{doneSel=b.dataset.m;renderProgress()});
   el.querySelectorAll("#metric button").forEach(b=>b.onclick=()=>{metricSel=b.dataset.m;renderProgress()});
+  speedCardInit(el);
   animateRings(el);
   hookTips(el,[["donechart","tip3"],["loadchart","tip1"],["readychart","tip2"],["speedchart","tip4"]]);
 }
