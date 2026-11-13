@@ -635,6 +635,16 @@ body[data-live="1"] .sync{display:block}
 .sp2sheet .duel .tr{flex:1;display:flex;height:10px;gap:3px}.sp2sheet .duel .tr i{display:block;height:100%;border-radius:5px;background:var(--surface3)}.sp2sheet .duel .tr i.w{background:var(--accent)}
 .sp2sheet .cls{width:100%;border:0;border-radius:14px;background:var(--surface2);color:var(--fg);font:800 16px var(--display);padding:10px;margin-top:6px}
 @media (prefers-reduced-motion:reduce){.sp2 .flash .z{animation:none}}
+/* wide screen (13.11.2026): the card takes the full row and shows speed, match and squad race side by side, no tabs */
+@media (min-width:900px){
+  .card.c6.sp2{grid-column:1/-1!important;display:grid;grid-template-columns:1.15fr 1fr 1fr;grid-template-areas:"hero match squad" "speed match squad" "bdt bdt bdt" "badges badges badges" "bmsg bmsg bmsg";align-items:start}
+  .sp2 .s2hero{grid-area:hero}.sp2 .stabs{display:none}
+  .sp2 .pane{display:block!important;animation:none!important}
+  .sp2 .pane[data-p=speed]{grid-area:speed}.sp2 .pane[data-p=match]{grid-area:match;border-left:1px solid var(--line);padding-top:18px;height:100%}.sp2 .pane[data-p=squad]{grid-area:squad;border-left:1px solid var(--line);padding-top:18px;height:100%}
+  .sp2 .pane[data-p=match]::before{content:"Your last match";display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+  .sp2 .pane[data-p=squad]::before{content:"Squad race";display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+  .sp2 .bdt{grid-area:bdt;border-top:1px solid var(--line);padding-top:14px}.sp2 .s2badges{grid-area:badges;overflow:visible}.sp2 .s2badges .bd{flex:1;width:auto}.sp2 .bmsg{grid-area:bmsg}
+}
 </style>
 </head>
 <body>
@@ -650,7 +660,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-13b</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-13c</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -1079,7 +1089,7 @@ function speedCardInit(root){
   // tabs
   el.querySelectorAll(".stabs button").forEach(b=>b.onclick=()=>{sp2Tab=b.dataset.t;el.querySelectorAll(".stabs button").forEach(x=>x.classList.toggle("on",x===b));
     el.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.dataset.p===sp2Tab));if(sp2Tab==="match")matchIn();if(sp2Tab==="squad"&&!sp2Raced)race()});
-  if(sp2Tab==="match")matchIn();if(sp2Tab==="squad")race();
+  if(matchMedia("(min-width:900px)").matches){matchIn();setTimeout(race,500)}else{if(sp2Tab==="match")matchIn();if(sp2Tab==="squad")race()}
   // badges
   el.querySelectorAll(".bd").forEach(b=>b.onclick=()=>{el.querySelector(".bmsg").textContent=b.dataset.msg});
 }
