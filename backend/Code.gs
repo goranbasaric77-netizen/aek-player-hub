@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.5";
+var VERSION = "1.6";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
