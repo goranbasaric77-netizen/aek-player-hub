@@ -645,6 +645,25 @@ body[data-live="1"] .sync{display:block}
   .sp2 .pane[data-p=squad]::before{content:"Squad race";display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
   .sp2 .bdt{grid-area:bdt;border-top:1px solid var(--line);padding-top:14px}.sp2 .s2badges{grid-area:badges;overflow:visible}.sp2 .s2badges .bd{flex:1;width:auto}.sp2 .bmsg{grid-area:bmsg}
 }
+
+/* ===== session effort (14.11.2026, players asked for it): RPE 1-10 after training ===== */
+.rpe .rq{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;margin-top:4px}
+.rpe .num{font-family:var(--display);font-weight:900;font-size:120px;line-height:.82;text-align:center;margin-top:14px;color:var(--muted);transition:color .15s}
+.rpe .num.pop{animation:rpepop .22s ease-out}@keyframes rpepop{0%{transform:scale(.86)}70%{transform:scale(1.06)}100%{transform:scale(1)}}
+.rpe .word{text-align:center;font-family:var(--display);font-weight:800;font-size:28px;line-height:1.1;margin-top:6px;min-height:31px}
+.rpe .hint{text-align:center;font-size:13.5px;color:var(--muted);min-height:20px;margin-top:2px}
+.rpe .segs{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;align-items:end;height:84px;margin-top:16px}
+.rpe .segs button{border:0;padding:0;border-radius:7px;background:var(--surface3);cursor:pointer;transition:background .12s,transform .12s;-webkit-tap-highlight-color:transparent}
+.rpe .segs button.cur{transform:scaleY(1.07)}
+.rpe .lab{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-top:6px;font-size:12px;color:var(--muted);text-align:center}
+.rpe .send{width:100%;margin-top:16px;border:0;border-radius:14px;padding:14px;font:800 21px var(--display);letter-spacing:.06em;text-transform:uppercase;background:var(--surface3);color:var(--muted);cursor:pointer}
+.rpe .send.ready{background:var(--accent);color:var(--accent-ink)}
+.rpe .err{font-size:13px;color:var(--bad);text-align:center;min-height:18px;margin-top:6px}
+.rpe .segs,.rpe .lab,.rpe .send{max-width:640px;margin-left:auto;margin-right:auto}
+.rpe.sent{display:flex;align-items:center;gap:14px}
+.rpe.sent .dot{width:58px;height:58px;border-radius:50%;flex:none;display:grid;place-items:center;font:900 30px var(--display);color:#111}
+.rpe.sent .t{flex:1;min-width:0}.rpe.sent .t b{display:block;font:800 23px var(--display);line-height:1.05}.rpe.sent .t span{font-size:13px;color:var(--muted)}
+.rpe.sent .chg{border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:999px;padding:8px 14px;font:700 13px var(--body);cursor:pointer;flex:none}
 </style>
 </head>
 <body>
@@ -660,7 +679,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-13c</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-14a</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -1093,6 +1112,41 @@ function speedCardInit(root){
   // badges
   el.querySelectorAll(".bd").forEach(b=>b.onclick=()=>{el.querySelector(".bmsg").textContent=b.dataset.msg});
 }
+/* ===== session effort (14.11.2026, Goran: players asked to rate the session after training). RPE 1-10, one tap + Send.
+   Shown on Today once the session is over (GPS result arrived, or 75 minutes after the session time). Stored like the check-in:
+   local state rpe[date]={v,at} and a log event type "rpe". ===== */
+const RPE_W=["Very easy","Easy","Easy","Moderate","Somewhat hard","Hard","Hard","Very hard","Very hard","Maximal"];
+const RPE_H=["Like a walk","Could do it again right now","Comfortable","Working, but in control","Breathing hard at times","Had to push","Had to push a lot","Close to my limit","Almost nothing left","Nothing left"];
+const RPE_C=["#3BD67C","#3BD67C","#7ED957","#B8D94A","#FFD100","#F6B73C","#F59A3C","#F27B45","#F25C54","#E5383B"];
+let rpeDraft=0,rpeEditing=false;
+function rpeToday(){const st=pstate();return (st.rpe&&st.rpe[TK])||null}
+function rpeCard(nm,sessT){
+  if(!P||document.body.dataset.staff)return "";
+  const isMatch=/match/i.test((P.dayType||"")+" "+(P.modeLabel||""))&&!/day off/i.test(P.modeLabel||"");
+  if(!P.pitch&&!isMatch)return "";
+  const over=LIVE?(!!P.result||nm>=toMin(sessT)+75):(demoAfter||nm>=toMin(sessT)+75);
+  const r=rpeToday();
+  if(!over&&!r)return "";
+  if(r&&!rpeEditing){const hist=P.rpeHist||[];const avg=hist.length>=3?(hist.reduce((a,b)=>a+b,0)/hist.length).toFixed(1):null;
+    return `<div class="card rpe sent"><span class="dot" style="background:${RPE_C[r.v-1]}">${r.v}</span><span class="t"><b>Session effort · ${RPE_W[r.v-1]}</b><span>Sent at ${r.at}${avg?" · your usual "+avg:""} · thank you</span></span><button class="chg" onclick="rpeEdit()">Change</button></div>`}
+  if(r&&!rpeDraft)rpeDraft=r.v;
+  const v=rpeDraft;
+  return `<div class="card rpe" id="rpecard"><div class="eyebrow">${isMatch?"Match":"Training"} done · 10 seconds</div><div class="rq">How hard was the session?</div>
+  <div class="num" id="rpenum" style="${v?"color:"+RPE_C[v-1]:""}">${v||"?"}</div><div class="word" id="rpeword">${v?RPE_W[v-1]:"Tap a bar"}</div><div class="hint" id="rpehint">${v?RPE_H[v-1]:"1 is very easy, 10 is your maximum"}</div>
+  <div class="segs">${RPE_C.map((c,i)=>`<button aria-label="Effort ${i+1}" class="${i===v-1?"cur":""}" style="height:${34+(i+1)*6.6}%;${i<v?"background:"+c:""}" onclick="rpePick(${i+1})"></button>`).join("")}</div>
+  <div class="lab">${RPE_C.map((c,i)=>`<span>${i+1}</span>`).join("")}</div>
+  <button class="send ${v?"ready":""}" id="rpesend" onclick="rpeSend()">Send</button><div class="err" id="rpeerr"></div></div>`;
+}
+function rpePick(n){rpeDraft=n;const card=document.getElementById("rpecard");if(!card)return;
+  card.querySelectorAll(".segs button").forEach((b,i)=>{b.style.background=i<n?RPE_C[i]:"";b.classList.toggle("cur",i===n-1)});
+  const nm=document.getElementById("rpenum");nm.textContent=n;nm.style.color=RPE_C[n-1];nm.classList.remove("pop");void nm.offsetWidth;nm.classList.add("pop");
+  document.getElementById("rpeword").textContent=RPE_W[n-1];document.getElementById("rpehint").textContent=RPE_H[n-1];
+  document.getElementById("rpesend").classList.add("ready");document.getElementById("rpeerr").textContent="";
+  if(navigator.vibrate)try{navigator.vibrate(8)}catch(e){}}
+function rpeSend(){if(!rpeDraft){document.getElementById("rpeerr").textContent="Tap a bar first";return}
+  const s=pstate();s.rpe=s.rpe||{};s.rpe[TK]={v:rpeDraft,at:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})};psave(s);
+  enqueue("rpe","",s.rpe[TK]);rpeDraft=0;rpeEditing=false;render("today");toast("Session effort sent. Thank you.")}
+function rpeEdit(){rpeEditing=true;rpeDraft=0;render("today")}
 function hookTips(el,pairs){pairs.forEach(([cid,tid])=>{const svg=document.getElementById(cid),tip=document.getElementById(tid);if(!svg||!tip)return;const mv=e=>{const t=e.target.closest("[data-tip]");if(!t){tip.classList.remove("on");return}const r=svg.getBoundingClientRect(),b=t.getBoundingClientRect();tip.textContent=t.dataset.tip;tip.style.left=(b.left-r.left+b.width/2)+"px";tip.style.top=(b.top-r.top)+"px";tip.classList.add("on")};svg.addEventListener("pointermove",mv);svg.addEventListener("pointerdown",mv);svg.addEventListener("pointerleave",()=>tip.classList.remove("on"))})}
 
 
@@ -1176,14 +1230,14 @@ function nextMatchOf(p){const x=p&&p.extra&&p.extra.next;if(!LIVE||!x||!x.date)r
   return {when:new Date(y,m-1,d,hh,mm),opp:x.opp||x.comp||"Match",where:(x.where||"Match")+" · "+new Date(y,m-1,d).toLocaleDateString("en-GB",{weekday:"short"})+" "+(x.time||"")}}
 function sessTimeOf(p){const x=p&&p.extra;if(LIVE&&x&&x.session_time)return x.session_time;return "11:00"}
 function toMin(t){const [h,m]=String(t||"0:0").split(":").map(Number);return (h||0)*60+(m||0)}
-function stateFromServer(st){const o={checkins:{},gym:{},mob:{},ack:{}};if(!st)return o;if(st.checkin)o.checkins[TK]=st.checkin;if(st.gym&&Object.keys(st.gym).length)o.gym[TK]=st.gym;if(st.mob&&Object.keys(st.mob).length)o.mob[TK]=Object.fromEntries(Object.entries(st.mob).map(([k,v])=>[k,!!v]));if(st.ack)o.ack[TK]=true;return o}
+function stateFromServer(st){const o={checkins:{},gym:{},mob:{},ack:{},rpe:{}};if(!st)return o;if(st.rpe&&st.rpe.v)o.rpe[TK]=st.rpe;if(st.checkin)o.checkins[TK]=st.checkin;if(st.gym&&Object.keys(st.gym).length)o.gym[TK]=st.gym;if(st.mob&&Object.keys(st.mob).length)o.mob[TK]=Object.fromEntries(Object.entries(st.mob).map(([k,v])=>[k,!!v]));if(st.ack)o.ack[TK]=true;return o}
 async function syncToday(){if(!LIVE||!P||P.id==="__staff")return;const id=P.id;let j=null;
   try{j=await api("today",{token:tokenOf(id),date:TK});if(j.ok)save("today:"+id,j);else if(j.error==="auth"){save("tok:"+id,null);toast("Session expired. Please log in again.");return}}
   catch(e){j=load("today:"+id,null);if(!j){toast("No connection. Your plan will load when you are online.")}}
   if(!j||!j.ok||P.id!==id)return;
   if(j.plan)applyPlan(P,j.plan);else P.noPlan=true;
   P.result=j.result||null;P.teamPulse=j.team||null;
-  if(!hasLocalToday(pstate())&&j.state&&(j.state.checkin||Object.keys(j.state.gym||{}).length||j.state.ack))psave(stateFromServer(j.state));
+  if(!hasLocalToday(pstate())&&j.state&&(j.state.checkin||j.state.rpe||Object.keys(j.state.gym||{}).length||j.state.ack))psave(stateFromServer(j.state));
   renderAll();flush();loadHistory(P,false)}
 let TEAMDATA=null;
 async function loadTeam(){const tok=tokenOf("__staff");let j=null;
@@ -1228,6 +1282,7 @@ function applyHistory(p,days){if(!days||!days.length)return;
   p.liveDayNames=wkDates.map(WD);
   p.readiness=wkDates.map(d=>{const x=byK[dkey(d)];return x&&x.h&&dkey(d)<TK?x.h.ready:null});
   p.total=H.filter(x=>x.h&&x.h.checkin).length;
+  p.rpeHist=H.filter(x=>x.d.date<TK&&x.d.state&&x.d.state.rpe&&x.d.state.rpe.v).map(x=>+x.d.state.rpe.v);
   /* 09.11.2026 (Goran): last session with GPS numbers (training or match), shown on Today when there is no pitch session */
   const lastS=H.filter(x=>x.d.date<TK&&x.d.result&&x.d.result.td).sort((u,v)=>u.d.date<v.d.date?1:-1)[0];
   p.lastSession=lastS?{date:lastS.date,plan:lastS.d.plan||null,result:lastS.d.result,match:!!(lastS.h&&lastS.h.match)}:null;
@@ -1273,7 +1328,7 @@ function renderToday(){
     <button class="goal ${R.gym>=100?"done":""}" style="--c:var(--r3)" data-go="s3"><span class="dot"></span><span class="t">Gym session<small>${R.gymTotal?(R.gym>=100?"Session complete":P.gym.title):"No gym planned today"}</small></span><span class="p">${R.gymTotal?R.gymDone:"—"}<small>${R.gymTotal?"/"+R.gymTotal+" sets":""}</small></span><span class="chev">›</span></button>
   </div>
   <div class="perfect ${R.closed?"yes":""}"><div><b>${R.closed?"Perfect day ✓":"Close all three rings"}</b><br><span>${R.closed?"All three rings closed. Streak: "+streak()+" day"+(streak()===1?"":"s")+".":"Check-in, session, gym. Three rings closed = a perfect day."}</span></div><span class="pic">${ic(R.closed?"trophy":"target",28)}</span></div></div>`;
-  h+=weatherCard()+pushCard();
+  h+=rpeCard(nm,sessT)+weatherCard()+pushCard();
   if(LIVE&&!P.pitch&&P.lastSession){const L=P.lastSession,r=L.result,t=(L.plan&&L.plan.pitch)||null,ref=P.ref||{};
     const pc=(v,base)=>base?Math.round(v/base*100):null;
     const tile=(k,v,unit,pct,lab)=>`<div class="kpi"><div class="k">${k}</div><div class="v">${v}<small>${unit}</small></div>${pct!=null?`<div class="muted small" style="margin-top:3px">${pct}% ${lab}</div>`:""}</div>`;
@@ -1478,7 +1533,7 @@ function staffHeader(){document.getElementById("h-name").textContent="Performanc
 function enterStaff(){P=null;draft=null;TEAMDATA=null;document.body.dataset.staff="1";setTimeout(flush,300);document.body.dataset.noplayer="1";save("last","__staff");
   document.getElementById("login").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("staffbar").classList.add("hidden");staffHeader();show("team")}
 function leaveStaff(){delete document.body.dataset.staff;delete document.body.dataset.noplayer;document.getElementById("staffbar").classList.add("hidden");document.getElementById("h-streakwrap").classList.remove("hidden")}
-function hasLocalToday(st){if(st.seeded===TK)return false;return !!(st.checkins[TK]||(st.gym[TK]&&Object.keys(st.gym[TK]).length)||(st.mob[TK]&&Object.keys(st.mob[TK]).length)||st.ack[TK])}
+function hasLocalToday(st){if(st.seeded===TK)return false;return !!(st.checkins[TK]||(st.rpe&&st.rpe[TK])||(st.gym[TK]&&Object.keys(st.gym[TK]).length)||(st.mob[TK]&&Object.keys(st.mob[TK]).length)||st.ack[TK])}
 /* Demo row: what the table would show if this player used the app today (sketch, deterministic). */
 function demoCheckin(i,sore,at){const q=k=>seeded(i,110+k,TODAY.getDate());const sc=k=>Math.max(1,Math.min(5,Math.round(1.6+q(k)*3.6)));return {hours:+(5.5+q(0)*3).toFixed(1),sleepq:sc(1),fatigue:sc(2),soreness:sore.length?2:sc(3),stress:sc(4),mood:sc(5),zones:sore,note:"",at}}
 function demoRow(p,i){const s=k=>seeded(i,40+k,TODAY.getDate());const opened=s(1)<0.9;const ci=opened&&s(2)<0.84;

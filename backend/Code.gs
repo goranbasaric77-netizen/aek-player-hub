@@ -204,7 +204,7 @@ function planOut(r) {
 
 /* Rebuild a player's state for one day from their log rows (last value wins). */
 function stateFrom(mine) {
-  var st = { checkin: null, gym: {}, mob: {}, ack: false, opened: false, lastOpen: null, note: "" };
+  var st = { checkin: null, gym: {}, mob: {}, ack: false, opened: false, lastOpen: null, note: "", rpe: null };
   mine.sort(function (a, b) { return new Date(a.ts) - new Date(b.ts); });
   mine.forEach(function (r) {
     var t = r.type;
@@ -214,6 +214,7 @@ function stateFrom(mine) {
     else if (t === "mob") { st.mob[String(r.key)] = Number(r.value) ? 1 : 0; }
     else if (t === "ack") { st.ack = !!Number(r.value); }
     else if (t === "note") { st.note = String(r.value || ""); }
+    else if (t === "rpe") { st.rpe = jsonOrNull(r.value); }   /* 14.11.2026: session effort 1-10 */
   });
   return st;
 }
