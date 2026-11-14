@@ -679,7 +679,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-14a</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-14b</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -1121,29 +1121,30 @@ const RPE_C=["#3BD67C","#3BD67C","#7ED957","#B8D94A","#FFD100","#F6B73C","#F59A3
 let rpeDraft=0,rpeEditing=false;
 function rpeToday(){const st=pstate();return (st.rpe&&st.rpe[TK])||null}
 function rpeCard(nm,sessT){
-  if(!P||document.body.dataset.staff)return "";
+  if(!P)return "";const staff=!!document.body.dataset.staff; /* 14.11: staff sees the card as a preview, nothing is saved */
   const isMatch=/match/i.test((P.dayType||"")+" "+(P.modeLabel||""))&&!/day off/i.test(P.modeLabel||"");
   if(!P.pitch&&!isMatch)return "";
   const over=LIVE?(!!P.result||nm>=toMin(sessT)+75):(demoAfter||nm>=toMin(sessT)+75);
   const r=rpeToday();
   if(!over&&!r)return "";
   if(r&&!rpeEditing){const hist=P.rpeHist||[];const avg=hist.length>=3?(hist.reduce((a,b)=>a+b,0)/hist.length).toFixed(1):null;
-    return `<div class="card rpe sent"><span class="dot" style="background:${RPE_C[r.v-1]}">${r.v}</span><span class="t"><b>Session effort · ${RPE_W[r.v-1]}</b><span>Sent at ${r.at}${avg?" · your usual "+avg:""} · thank you</span></span><button class="chg" onclick="rpeEdit()">Change</button></div>`}
+    return `<div class="card rpe sent"><span class="dot" style="background:${RPE_C[r.v-1]}">${r.v}</span><span class="t"><b>Session effort · ${RPE_W[r.v-1]}</b><span>Sent at ${r.at}${avg?" · your usual "+avg:""} · thank you</span></span>${staff?"":`<button class="chg" onclick="rpeEdit()">Change</button>`}</div>`}
   if(r&&!rpeDraft)rpeDraft=r.v;
   const v=rpeDraft;
   return `<div class="card rpe" id="rpecard"><div class="eyebrow">${isMatch?"Match":"Training"} done · 10 seconds</div><div class="rq">How hard was the session?</div>
   <div class="num" id="rpenum" style="${v?"color:"+RPE_C[v-1]:""}">${v||"?"}</div><div class="word" id="rpeword">${v?RPE_W[v-1]:"Tap a bar"}</div><div class="hint" id="rpehint">${v?RPE_H[v-1]:"1 is very easy, 10 is your maximum"}</div>
   <div class="segs">${RPE_C.map((c,i)=>`<button aria-label="Effort ${i+1}" class="${i===v-1?"cur":""}" style="height:${34+(i+1)*6.6}%;${i<v?"background:"+c:""}" onclick="rpePick(${i+1})"></button>`).join("")}</div>
   <div class="lab">${RPE_C.map((c,i)=>`<span>${i+1}</span>`).join("")}</div>
-  <button class="send ${v?"ready":""}" id="rpesend" onclick="rpeSend()">Send</button><div class="err" id="rpeerr"></div></div>`;
+  <button class="send ${v?"ready":""}" id="rpesend" onclick="rpeSend()">Send</button><div class="err" id="rpeerr">${staff?"Staff preview · only the player can send":""}</div></div>`;
 }
 function rpePick(n){rpeDraft=n;const card=document.getElementById("rpecard");if(!card)return;
   card.querySelectorAll(".segs button").forEach((b,i)=>{b.style.background=i<n?RPE_C[i]:"";b.classList.toggle("cur",i===n-1)});
   const nm=document.getElementById("rpenum");nm.textContent=n;nm.style.color=RPE_C[n-1];nm.classList.remove("pop");void nm.offsetWidth;nm.classList.add("pop");
   document.getElementById("rpeword").textContent=RPE_W[n-1];document.getElementById("rpehint").textContent=RPE_H[n-1];
-  document.getElementById("rpesend").classList.add("ready");document.getElementById("rpeerr").textContent="";
+  document.getElementById("rpesend").classList.add("ready");if(!document.body.dataset.staff)document.getElementById("rpeerr").textContent="";
   if(navigator.vibrate)try{navigator.vibrate(8)}catch(e){}}
 function rpeSend(){if(!rpeDraft){document.getElementById("rpeerr").textContent="Tap a bar first";return}
+  if(document.body.dataset.staff){toast("Staff preview. Only the player can send.");return}
   const s=pstate();s.rpe=s.rpe||{};s.rpe[TK]={v:rpeDraft,at:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})};psave(s);
   enqueue("rpe","",s.rpe[TK]);rpeDraft=0;rpeEditing=false;render("today");toast("Session effort sent. Thank you.")}
 function rpeEdit(){rpeEditing=true;rpeDraft=0;render("today")}
