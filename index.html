@@ -585,6 +585,9 @@ body[data-live="1"] .sync{display:block}
 .sp2 .pbb{display:inline-block;background:var(--accent);color:#111;font:900 12px var(--display);letter-spacing:.12em;padding:3px 9px;border-radius:999px;margin-top:4px}
 .sp2 .s2gauge{margin:4px auto 0;width:100%;max-width:340px}.sp2 .s2gauge svg{width:100%;display:block}
 .sp2 .gnum{text-align:center;margin-top:-6px}.sp2 .gnum b{font:900 76px var(--display);line-height:.82;display:inline-block;font-variant-numeric:tabular-nums}.sp2 .gnum span{font:700 16px var(--body);color:var(--muted);letter-spacing:.1em;margin-left:6px}
+.sp2 .s2best{display:flex;align-items:center;justify-content:center;gap:5px;width:max-content;margin:6px auto 0;background:var(--accent);color:var(--accent-ink);font:800 12px var(--display);letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:999px}
+.sp2 .s2best svg{width:13px;height:13px}
+.sp2 .s2last{text-align:center;margin-top:5px;font-size:12.5px;color:var(--muted)}.sp2 .s2last b{color:var(--r3)}
 .sp2 .togo{display:flex;justify-content:center;gap:8px;margin:10px 0 2px;font-size:14px;flex-wrap:wrap}.sp2 .togo b{color:var(--accent)}
 .sp2 .replay{position:absolute;right:12px;top:12px;background:var(--surface2);border:1px solid var(--line);color:var(--fg);border-radius:999px;font:700 11px var(--body);letter-spacing:.1em;padding:6px 10px;text-transform:uppercase}
 .sp2 .stabs{display:flex;gap:6px;padding:10px 12px 0}.sp2 .stabs button{flex:1;border:0;border-radius:14px;padding:9px 4px 8px;background:var(--surface2);color:var(--muted);font:800 15px var(--display);letter-spacing:.06em;text-transform:uppercase;transition:background .2s,color .2s;display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -679,7 +682,7 @@ body[data-live="1"] .sync{display:block}
     <div class="pin" id="pin" style="margin-top:14px"></div>
     <p style="text-align:center;font-size:12px;margin-top:10px">Sketch mode: any 4 digits work.</p>
   </div>
-<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-14b</p>
+<p id="appver" style="text-align:center;font-size:11px;opacity:.5;margin-top:4px">Version 2026-11-15a</p>
 </div>
 
 <div id="app" class="app hidden">
@@ -1036,6 +1039,8 @@ function speedCard(S){
       <path class="arc" d="M30 170 A140 140 0 0 1 310 170" fill="none" stroke="url(#sp2g)" stroke-width="18" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440"/>
       <g class="ticks"></g><g class="needle" style="transform-origin:170px 170px;transform:rotate(-90deg)"><line x1="170" y1="170" x2="170" y2="52" stroke="var(--fg)" stroke-width="4" stroke-linecap="round"/><circle cx="170" cy="170" r="9" fill="var(--fg)"/></g></svg></div>
     <div class="gnum"><b class="num">${S.top?"0.0":"–"}</b><span>km/h</span></div>
+    ${S.top&&S.top_date?`<div class="s2best">${ic("trophy",13)}Best ${S.label} · ${new Date(S.top_date+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short"})} ${dm(S.top_date)}</div>`:""}
+    ${(()=>{const L=(S.sessions||[]).slice(-1)[0];return S.top&&L&&L.d!==S.top_date?`<div class="s2last">Last session ${dm(L.d)} · <b>${f1(L.v)} km/h</b></div>`:""})()}
     <div class="togo">${S.pb?`<span><b>+${f1(S.top-S.prev_record)} km/h</b> on your old record (${f1(S.prev_record)})</span>`:S.top?`<span><b>${f1(S.record-S.top)} km/h</b> to your record</span><span>·</span><span>${S.pct}% of your best</span>`:`<span>No speed data ${S.label} yet. Your record: <b>${f1(S.record)} km/h</b></span>`}</div></div>
   <div class="stabs">${tab("speed","bolt","Speed")}${M?tab("match","ball","Match"):""}${S.top5&&S.top5.length?tab("squad","flag","Squad race"):""}</div>`;
   // speed
@@ -1074,6 +1079,10 @@ function speedCardInit(root){
   const pt=(v,r)=>{const a=(ang(v)-90)*Math.PI/180;return [170+r*Math.cos(a),170+r*Math.sin(a)]};
   let tk="";[[S.speed95,"95%","var(--muted)"],[S.record,"RECORD "+f1(S.record),"var(--accent)"]].forEach(([v,t,c])=>{if(!v)return;const [x1,y1]=pt(v,128),[x2,y2]=pt(v,156),[xt,yt]=pt(v,112);
     tk+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="3"/><text x="${xt}" y="${yt}" fill="${c}" font-size="11" font-weight="700" text-anchor="middle">${t}</text>`});
+  const last=(S.sessions||[]).slice(-1)[0];
+  if(last&&S.top&&last.d!==S.top_date){const [x1,y1]=pt(last.v,128),[x2,y2]=pt(last.v,156),[xt,yt]=pt(last.v,112);
+    tk+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--r3)" stroke-width="4" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="4" fill="var(--r3)"/>`
+      +`<text x="${xt}" y="${yt}" fill="var(--r3)" font-size="12" font-weight="800" text-anchor="middle">LAST</text>`}
   [20,24,28,32,36].forEach(v=>{const [x,y]=pt(v,176);tk+=`<text x="${x}" y="${y+4}" fill="var(--muted)" font-size="10" text-anchor="middle">${v}</text>`});
   el.querySelector(".ticks").innerHTML=tk;
   const play=()=>{if(!S.top)return;const n=el.querySelector(".needle"),a=el.querySelector(".arc"),num=el.querySelector(".num"),off=440*(1-(ang(S.top)+90)/180);
