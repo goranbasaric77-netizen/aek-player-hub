@@ -664,6 +664,28 @@ body[data-live="1"] .sync{display:block}
 .rpe .err{font-size:13px;color:var(--bad);text-align:center;min-height:18px;margin-top:6px}
 .rpe .segs,.rpe .lab,.rpe .send{max-width:640px;margin-left:auto;margin-right:auto}
 .rpe.sent{display:flex;align-items:center;gap:14px}
+/* 19.11.2026 (Goran: players skip the grey card): an unanswered effort card is loud, on top of Today, until sent */
+.rpe.due{border:2px solid var(--accent);box-shadow:0 0 0 0 rgba(255,209,0,.55),var(--shadow);animation:rpeglow 2.4s ease-out infinite}
+@keyframes rpeglow{0%{box-shadow:0 0 0 0 rgba(255,209,0,.55),var(--shadow)}70%{box-shadow:0 0 0 14px rgba(255,209,0,0),var(--shadow)}100%{box-shadow:0 0 0 0 rgba(255,209,0,0),var(--shadow)}}
+.rpe.due.picked{animation:none}
+.rpe .rpe-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rpe .rpe-badge{background:var(--accent);color:var(--accent-ink);font:800 12px var(--body);letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:5px 11px;white-space:nowrap}
+.rpe.due .num{color:var(--accent)}
+.rpe.due .segs button{opacity:.38;touch-action:none}
+.rpe.due .segs button.on{opacity:1}
+.rpe.due:not(.picked) .segs button{animation:rpewave 3.2s ease-in-out infinite;transform-origin:bottom}
+@keyframes rpewave{0%,60%,100%{transform:scaleY(1);opacity:.38}30%{transform:scaleY(1.14);opacity:.95}}
+.rpe .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px;max-width:640px;margin-left:auto;margin-right:auto}
+.rpe.due .send{background:var(--surface3);color:var(--muted)}
+.rpe.due .send.ready{background:var(--accent);color:var(--accent-ink);animation:rpesend 1.4s ease-in-out infinite}
+@keyframes rpesend{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+.rpe-float{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;z-index:60;
+  background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:12px 18px;font:800 15px var(--body);box-shadow:0 8px 24px rgba(0,0,0,.35);transition:opacity .25s,transform .25s;white-space:nowrap}
+.rpe-float.on{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.rpe-float i{display:inline-block;width:9px;height:9px;border-radius:50%;background:#E5383B;margin-right:8px;animation:rpedot 1s ease-in-out infinite}
+@keyframes rpedot{50%{opacity:.25}}
+.rpe-thanks{animation:rpethanks .5s ease-out}@keyframes rpethanks{0%{transform:scale(.94);opacity:.4}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion: reduce){.rpe.due,.rpe.due .segs button,.rpe.due .send.ready,.rpe-float i{animation:none!important}}
 .rpe.sent .dot{width:58px;height:58px;border-radius:50%;flex:none;display:grid;place-items:center;font:900 30px var(--display);color:#111}
 .rpe.sent .t{flex:1;min-width:0}.rpe.sent .t b{display:block;font:800 23px var(--display);line-height:1.05}.rpe.sent .t span{font-size:13px;color:var(--muted)}
 .rpe.sent .chg{border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:999px;padding:8px 14px;font:700 13px var(--body);cursor:pointer;flex:none}
@@ -1020,7 +1042,8 @@ else if(last==="__staff")document.getElementById("staffbtn").click(); else if(la
 document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
 function show(v){if(!P&&v!=="team")return;view=v;document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));["team","today","checkin","progress","week"].forEach(k=>document.getElementById("v-"+k).classList.toggle("hidden",k!==v));document.getElementById("scroll").scrollTop=0;render(v)}
 function renderAll(){const d=TODAY.toLocaleDateString("en-GB",{weekday:"long",day:"2-digit",month:"long"});document.getElementById("h-date").textContent=(innerWidth<600?TODAY.toLocaleDateString("en-GB",{weekday:"short",day:"2-digit",month:"short"}):d)+" · tap to switch";document.getElementById("h-name").textContent=P.name;setAv("h-av",P);setAv("s-av",P);document.getElementById("s-name").textContent=P.short;document.getElementById("s-pos").textContent=P.pos;const s=streak();document.getElementById("h-streak").textContent=s;document.getElementById("h-streakwrap").classList.toggle("hot",s>=3);const c=todayCheckin();document.querySelectorAll(".dotn-s").forEach(e=>e.classList.toggle("hidden",!!c));show(view)}
-function render(v){clearTimers();const el=document.getElementById("v-"+v);el.classList.remove("enter");({team:renderTeam,today:renderToday,checkin:renderCheckin,progress:renderProgress,week:renderWeek})[v]();void el.offsetWidth;el.classList.add("enter")}
+function render(v){clearTimers();const el=document.getElementById("v-"+v);el.classList.remove("enter");({team:renderTeam,today:renderToday,checkin:renderCheckin,progress:renderProgress,week:renderWeek})[v]();void el.offsetWidth;el.classList.add("enter");
+  if(v==="today")rpeHook();else{const f=document.getElementById("rpefloat");if(f)f.classList.remove("on")}}
 /* ===== speed card v2 (13.11.2026, Goran): interactive. What players care about: top speed vs own record,
    last match vs own season, squad race and head to head. Data: platform bridge, plan extra_json.speed.
    speedCard(S) returns the HTML; speedCardInit(root) starts the gauge and wires taps. No data = old weekly chart. ===== */
@@ -1140,14 +1163,15 @@ function rpeCard(nm,sessT){
     return `<div class="card rpe sent"><span class="dot" style="background:${RPE_C[r.v-1]}">${r.v}</span><span class="t"><b>Session effort · ${RPE_W[r.v-1]}</b><span>Sent at ${r.at}${avg?" · your usual "+avg:""} · thank you</span></span>${staff?"":`<button class="chg" onclick="rpeEdit()">Change</button>`}</div>`}
   if(r&&!rpeDraft)rpeDraft=r.v;
   const v=rpeDraft;
-  return `<div class="card rpe" id="rpecard"><div class="eyebrow">${isMatch?"Match":"Training"} done · 10 seconds</div><div class="rq">How hard was the session?</div>
+  return `<div class="card rpe ${r?"":"due"} ${v?"picked":""}" id="rpecard"><div class="rpe-top"><div class="eyebrow">${isMatch?"Match":"Training"} done · 10 seconds</div>${r?"":`<span class="rpe-badge">Your turn</span>`}</div><div class="rq">How hard was the session?</div>
   <div class="num" id="rpenum" style="${v?"color:"+RPE_C[v-1]:""}">${v||"?"}</div><div class="word" id="rpeword">${v?RPE_W[v-1]:"Tap a bar"}</div><div class="hint" id="rpehint">${v?RPE_H[v-1]:"1 is very easy, 10 is your maximum"}</div>
-  <div class="segs">${RPE_C.map((c,i)=>`<button aria-label="Effort ${i+1}" class="${i===v-1?"cur":""}" style="height:${34+(i+1)*6.6}%;${i<v?"background:"+c:""}" onclick="rpePick(${i+1})"></button>`).join("")}</div>
-  <div class="lab">${RPE_C.map((c,i)=>`<span>${i+1}</span>`).join("")}</div>
+  <div class="segs" id="rpesegs">${RPE_C.map((c,i)=>`<button aria-label="Effort ${i+1}" class="${i===v-1?"cur":""} ${i<v?"on":""}" data-n="${i+1}" style="height:${34+(i+1)*6.6}%;background:${c};animation-delay:${i*90}ms" onclick="rpePick(${i+1})"></button>`).join("")}</div>
+  <div class="lab">${RPE_C.map((c,i)=>`<span>${i+1}</span>`).join("")}</div><div class="ends"><span>← very easy</span><span>maximal →</span></div>
   <button class="send ${v?"ready":""}" id="rpesend" onclick="rpeSend()">Send</button><div class="err" id="rpeerr">${staff?"Staff preview · only the player can send":""}</div></div>`;
 }
 function rpePick(n){rpeDraft=n;const card=document.getElementById("rpecard");if(!card)return;
-  card.querySelectorAll(".segs button").forEach((b,i)=>{b.style.background=i<n?RPE_C[i]:"";b.classList.toggle("cur",i===n-1)});
+  card.classList.add("picked");
+  card.querySelectorAll(".segs button").forEach((b,i)=>{b.classList.toggle("on",i<n);b.classList.toggle("cur",i===n-1)});
   const nm=document.getElementById("rpenum");nm.textContent=n;nm.style.color=RPE_C[n-1];nm.classList.remove("pop");void nm.offsetWidth;nm.classList.add("pop");
   document.getElementById("rpeword").textContent=RPE_W[n-1];document.getElementById("rpehint").textContent=RPE_H[n-1];
   document.getElementById("rpesend").classList.add("ready");if(!document.body.dataset.staff)document.getElementById("rpeerr").textContent="";
@@ -1155,8 +1179,25 @@ function rpePick(n){rpeDraft=n;const card=document.getElementById("rpecard");if(
 function rpeSend(){if(!rpeDraft){document.getElementById("rpeerr").textContent="Tap a bar first";return}
   if(document.body.dataset.staff){toast("Staff preview. Only the player can send.");return}
   const s=pstate();s.rpe=s.rpe||{};s.rpe[TK]={v:rpeDraft,at:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})};psave(s);
-  enqueue("rpe","",s.rpe[TK]);rpeDraft=0;rpeEditing=false;render("today");toast("Session effort sent. Thank you.")}
+  enqueue("rpe","",s.rpe[TK]);rpeDraft=0;rpeEditing=false;render("today");toast("Session effort sent. Thank you.");
+  const k=document.querySelector(".rpe.sent");if(k)k.classList.add("rpe-thanks");if(navigator.vibrate)try{navigator.vibrate([12,40,12])}catch(e){}}
+/* prevlacenje prstom preko stubica bira ocenu; plutajuce dugme vodi do upitnika dok nije poslat */
+function rpeHook(){const seg=document.getElementById("rpesegs");
+  if(seg&&!seg._hook){seg._hook=1;const pick=e=>{const el=document.elementFromPoint(e.clientX,e.clientY);const b=el&&el.closest("#rpesegs button");if(b&&+b.dataset.n!==rpeDraft)rpePick(+b.dataset.n)};
+    seg.addEventListener("pointerdown",e=>{seg.setPointerCapture(e.pointerId);pick(e)});seg.addEventListener("pointermove",e=>{if(e.buttons||e.pointerType==="touch")pick(e)})}
+  let f=document.getElementById("rpefloat");
+  if(!f){f=document.createElement("button");f.id="rpefloat";f.className="rpe-float";f.innerHTML="<i></i>Rate today's session · 10 sec";document.body.appendChild(f);
+    f.onclick=()=>{const c=document.querySelector(".rpe.due");if(c)c.scrollIntoView({behavior:"smooth",block:"center"})}}
+  rpeFloat();
+  if(!window._rpeScroll){window._rpeScroll=1;addEventListener("scroll",rpeFloat,{passive:true,capture:true});addEventListener("resize",rpeFloat,{passive:true});
+    setInterval(rpeFloat,1000)}}           /* rezerva: neki telefoni javljaju pomeranje sa zakasnjenjem */
+/* podsetnik je vidljiv samo dok upitnik ceka, a sam upitnik nije na ekranu (gleda se trenutni DOM, pa ne smeta ponovno crtanje) */
+function rpeFloat(){const f=document.getElementById("rpefloat");if(!f)return;const c=document.querySelector("#v-today:not(.hidden) .rpe.due");
+  let on=false;if(c&&view==="today"){const r=c.getBoundingClientRect();on=r.bottom<60||r.top>innerHeight-60}
+  f.classList.toggle("on",on)}
 function rpeEdit(){rpeEditing=true;rpeDraft=0;render("today")}
+/* posle svakog crtanja Today (i direktnih poziva renderToday) povezi upitnik i plutajuce dugme */
+setTimeout(()=>{if(typeof renderToday==="function"&&!renderToday._rpe){const _rt=renderToday;renderToday=function(){_rt.apply(this,arguments);rpeHook()};renderToday._rpe=1}},0);
 function hookTips(el,pairs){pairs.forEach(([cid,tid])=>{const svg=document.getElementById(cid),tip=document.getElementById(tid);if(!svg||!tip)return;const mv=e=>{const t=e.target.closest("[data-tip]");if(!t){tip.classList.remove("on");return}const r=svg.getBoundingClientRect(),b=t.getBoundingClientRect();tip.textContent=t.dataset.tip;tip.style.left=(b.left-r.left+b.width/2)+"px";tip.style.top=(b.top-r.top)+"px";tip.classList.add("on")};svg.addEventListener("pointermove",mv);svg.addEventListener("pointerdown",mv);svg.addEventListener("pointerleave",()=>tip.classList.remove("on"))})}
 
 
@@ -1330,15 +1371,16 @@ function renderToday(){
   const stCls=i=>i===cur?"now":i<cur?"past":"";
   const rNow=c?readinessOf(c):null;
   if(LIVE&&P.noPlan){renderNoPlan(el=>el);return}
-  // hero
-  let h=`<div class="card hero"><div class="row"><div><div class="eyebrow">${P.dayType}</div><div class="big">${P.modeLabel}</div><div class="sub">${P.sub}</div></div>${triple(R.vals,132,`<span data-count="${R.score}">0</span><small>day score</small>`)}</div>
+  // hero; an unanswered effort card goes above it (19.11.2026)
+  const rpeH=rpeCard(nm,sessT),rpeDue=rpeH.includes("rpe due");
+  let h=(rpeDue?rpeH:"")+`<div class="card hero"><div class="row"><div><div class="eyebrow">${P.dayType}</div><div class="big">${P.modeLabel}</div><div class="sub">${P.sub}</div></div>${triple(R.vals,132,`<span data-count="${R.score}">0</span><small>day score</small>`)}</div>
   <div class="goals">
     <button class="goal ${R.ci>=100?"done":""}" style="--c:var(--r1)" data-v="checkin"><span class="dot"></span><span class="t">Morning check-in<small>${c?"Sent at "+c.at+" · "+readyWord(rNow)+" "+rNow:"60 seconds · tells the staff how you feel"}</small></span><span class="p">${c?"✓":"0"}<small>${c?"":"/1"}</small></span><span class="chev">›</span></button>
     <button class="goal ${R.sess>=100?"done":""}" style="--c:var(--r2)" data-go="s2"><span class="dot"></span><span class="t">${P.pitch?"Pitch targets":(P.mobility&&P.mobility.length?"Activation + mobility":"Rest day")}<small>${R.sessSub}</small></span><span class="p">${R.sessLabel}</span><span class="chev">›</span></button>
     <button class="goal ${R.gym>=100?"done":""}" style="--c:var(--r3)" data-go="s3"><span class="dot"></span><span class="t">Gym session<small>${R.gymTotal?(R.gym>=100?"Session complete":P.gym.title):"No gym planned today"}</small></span><span class="p">${R.gymTotal?R.gymDone:"—"}<small>${R.gymTotal?"/"+R.gymTotal+" sets":""}</small></span><span class="chev">›</span></button>
   </div>
   <div class="perfect ${R.closed?"yes":""}"><div><b>${R.closed?"Perfect day ✓":"Close all three rings"}</b><br><span>${R.closed?"All three rings closed. Streak: "+streak()+" day"+(streak()===1?"":"s")+".":"Check-in, session, gym. Three rings closed = a perfect day."}</span></div><span class="pic">${ic(R.closed?"trophy":"target",28)}</span></div></div>`;
-  h+=rpeCard(nm,sessT)+weatherCard()+pushCard();
+  h+=(rpeDue?"":rpeH)+weatherCard()+pushCard();
   if(LIVE&&!P.pitch&&P.lastSession){const L=P.lastSession,r=L.result,t=(L.plan&&L.plan.pitch)||null,ref=P.ref||{};
     const pc=(v,base)=>base?Math.round(v/base*100):null;
     const tile=(k,v,unit,pct,lab)=>`<div class="kpi"><div class="k">${k}</div><div class="v">${v}<small>${unit}</small></div>${pct!=null?`<div class="muted small" style="margin-top:3px">${pct}% ${lab}</div>`:""}</div>`;
