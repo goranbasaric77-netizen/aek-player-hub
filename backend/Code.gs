@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.9";
+var VERSION = "2.0";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -431,7 +431,8 @@ function reminderPlan(date) {
     var pm = known && t >= 13 * 60;
     var start = minOf(ex.first_call) || t;            // first duty of the day (video, activation), else training
     if (start && t && start > t) start = t;
-    var rec = { id: id, time: known ? hm(t) : "", due: {} };
+    // tz_shift = local minus Athens in minutes (away trip in another time zone); all times here are local
+    var rec = { id: id, time: known ? hm(t) : "", due: {}, shift: Number(ex.tz_shift) || 0 };
     if (!s.checkin) {
       if (match) {
         // match day: check-in in the morning (10:00), or 1 h before an earlier hotel activation; second call 12:30
@@ -473,13 +474,15 @@ function sendReminders() {
   if (!appId || !key) { Logger.log("push: ONESIGNAL_APP_ID ili ONESIGNAL_KEY nije podesen"); return; }
   var now = new Date(), date = dayKey(now);
   var nowMin = Number(Utilities.formatDate(now, "Europe/Athens", "H")) * 60 + Number(Utilities.formatDate(now, "Europe/Athens", "m"));
-  if (nowMin < 7 * 60 || nowMin > 21 * 60 + 30) return;
+  if (nowMin < 5 * 60 || nowMin > 23 * 60) return;
   var sent = sentToday(date), groups = {}, sh = pushSheet();
   reminderPlan(date).forEach(function (rec) {
+    var loc = nowMin + rec.shift;                     // player's local clock (Como = Athens - 60)
+    if (loc < 7 * 60 || loc > 21 * 60 + 30) return;   // quiet hours, local
     Object.keys(rec.due).forEach(function (phase) {
       var due = rec.due[phase];
-      if (nowMin < due || nowMin > due + 60 || sent[rec.id + "|" + phase]) return;
-      if (phase === "check_2" && rec.due.check_1 && !sent[rec.id + "|check_1"] && nowMin <= rec.due.check_1 + 60) return;
+      if (loc < due || loc > due + 60 || sent[rec.id + "|" + phase]) return;
+      if (phase === "check_2" && rec.due.check_1 && !sent[rec.id + "|check_1"] && loc <= rec.due.check_1 + 60) return;
       var txt = PUSH_TEXT[(phase === "check_1" || phase === "check_2") && !rec.time ? phase + "x" : phase];
       var body = txt[1].replace("{t}", rec.time).replace("{what}", rec.what || "");
       var g = phase + "|" + body;

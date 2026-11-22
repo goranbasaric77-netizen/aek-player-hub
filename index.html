@@ -1214,7 +1214,9 @@ const WX_HOURS=[{h:10,l:"Activation"},{h:11,l:"Training"},{h:12,l:"Gym"},{h:13,l
 function wxHours(){if(!LIVE||!P||!P.extra||!P.extra.session_time)return WX_HOURS;const M=!!P.extra.match_day;const sm=toMin(P.extra.session_time);const h=Math.floor(sm/60),h0=Math.floor((sm-30)/60);
   const L=M?["Warm-up","Kick-off","2nd half","Finish"]:(P.pitch?["Activation","Training","Gym","Finish"]:["Activation","Gym","Finish","Later"]);
   return [h0,h,h+1,h+2].map((x,i)=>({h:Math.min(23,Math.max(0,x)),l:L[i]}))}
-function wxKey(){return wxHours().map(x=>x.h).join(",")}
+/* 22.11.2026 (Goran): away trips. The plan can carry extra.wx = {name, lat, lon, tz}; otherwise the training centre in Spata. */
+function wxLoc(){const w=LIVE&&P&&P.extra&&P.extra.wx;return (w&&w.lat&&w.lon)?{name:w.name||"Away",lat:+w.lat,lon:+w.lon,tz:w.tz||"Europe/Athens",away:true}:Object.assign({tz:"Europe/Athens"},WX_LOC)}
+function wxKey(){return wxLoc().name+":"+wxHours().map(x=>x.h).join(",")}
 const WX_DEMO=[{h:10,l:"Activation",temp:16,feels:14,rain:55,mm:0.4,code:61,wind:16,gust:28,hum:82},{h:11,l:"Training",temp:17,feels:15,rain:60,mm:0.6,code:61,wind:18,gust:31,hum:80},{h:12,l:"Gym",temp:18,feels:16,rain:45,mm:0.2,code:80,wind:19,gust:30,hum:76},{h:13,l:"Finish",temp:18,feels:17,rain:30,mm:0,code:3,wind:17,gust:27,hum:72}];
 const WX_DESC={sun:"Clear sky",part:"Partly cloudy",cloud:"Overcast",fog:"Fog",rain:"Rain",storm:"Thunderstorm",snow:"Snow"};
 function wxKind(c){if(c===0)return "sun";if(c<=2)return "part";if(c===3)return "cloud";if(c===45||c===48)return "fog";if(c>=95)return "storm";if((c>=71&&c<=77)||c===85||c===86)return "snow";if(c>=51)return "rain";return "cloud"}
@@ -1222,7 +1224,8 @@ function localDay(){const d=new Date();return d.getFullYear()+"-"+String(d.getMo
 let WXDATA=load("wx",null), wxBusy=false;
 function wxFresh(){return !!(WXDATA&&WXDATA.day===localDay()&&WXDATA.key===wxKey()&&Date.now()-WXDATA.t<30*60*1000)}
 async function wxFetch(){if(wxBusy)return false;wxBusy=true;try{
-  const u=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LOC.lat}&longitude=${WX_LOC.lon}&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,relative_humidity_2m&timezone=Europe%2FAthens&forecast_days=1`;
+  const L=wxLoc();
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${L.lat}&longitude=${L.lon}&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,relative_humidity_2m&timezone=${encodeURIComponent(L.tz)}&forecast_days=1`;
   const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),7000);const r=await fetch(u,{signal:ctl.signal});clearTimeout(to);if(!r.ok)throw new Error("http "+r.status);
   const H=(await r.json()).hourly;
   const hours=wxHours().map(x=>{const i=H.time.findIndex(t=>+t.slice(11,13)===x.h);if(i<0)throw new Error("hour missing");
@@ -1240,11 +1243,11 @@ function wxTips(H){const m=H[1],k=wxKind(m.code),maxRain=Math.max(...H.map(x=>x.
   return t.slice(0,4)}
 function weatherCard(){const W=(WXDATA&&WXDATA.day===localDay()&&WXDATA.key===wxKey())?WXDATA:{hours:WX_DEMO.map((x,i)=>Object.assign({},x,wxHours()[i])),live:false};const m=W.hours[1],k=wxKind(m.code);
   const dayL=new Date().toLocaleDateString("en-GB",{weekday:"short",day:"2-digit",month:"short"});
-  return `<div class="card wxcard wx-${k}" id="wxcard"><div class="wxtop"><div style="min-width:0"><div class="eyebrow">Training weather · ${WX_LOC.name} · ${dayL}</div><div class="wxbig"><span class="t">${Math.round(m.temp)}°</span><span class="d"><b>${WX_DESC[k]}</b>Feels like ${Math.round(m.feels)}° at ${String(m.h).padStart(2,"0")}:00</span></div></div><div class="wxic">${ic(k,64)}</div></div>
+  return `<div class="card wxcard wx-${k}" id="wxcard"><div class="wxtop"><div style="min-width:0"><div class="eyebrow">${P&&P.extra&&P.extra.match_day?"Match":"Training"} weather · ${wxLoc().name} · ${dayL}</div><div class="wxbig"><span class="t">${Math.round(m.temp)}°</span><span class="d"><b>${WX_DESC[k]}</b>Feels like ${Math.round(m.feels)}° at ${String(m.h).padStart(2,"0")}:00</span></div></div><div class="wxic">${ic(k,64)}</div></div>
   <div class="wxstats"><div><span>Rain</span><b>${m.rain}<small>%</small></b></div><div><span>Wind</span><b>${Math.round(m.wind)}<small>km/h</small></b></div><div><span>Gusts</span><b>${Math.round(m.gust)}<small>km/h</small></b></div><div><span>Humidity</span><b>${m.hum}<small>%</small></b></div></div>
   <div class="wxhours">${W.hours.map((x,i)=>`<div class="${i===1?"on":""}"><span class="hl">${x.l}</span><b>${String(x.h).padStart(2,"0")}:00</b><span class="hi">${ic(wxKind(x.code),22)}</span><b class="ht">${Math.round(x.temp)}°</b><span class="hr">${ic("rain",11)} ${x.rain}%</span></div>`).join("")}</div>
   <div class="eyebrow" style="margin-top:14px">What to bring</div><div class="chips">${wxTips(W.hours).map(t=>`<span class="chip y">${t}</span>`).join("")}</div>
-  <div class="wxsrc">${W.live?`Live forecast for the training centre · updated ${new Date(W.t).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`:"Demo weather · the live forecast loads when the phone is online"}</div></div>`}
+  <div class="wxsrc">${W.live?`Live forecast for ${wxLoc().away?wxLoc().name+" (local time)":"the training centre"} · updated${new Date(W.t).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`:"Demo weather · the live forecast loads when the phone is online"}</div></div>`}
 function wxRefresh(){if(wxFresh())return;wxFetch().then(ok=>{if(!ok)return;const c=document.getElementById("wxcard");if(c)c.outerHTML=weatherCard()})}
 
 
