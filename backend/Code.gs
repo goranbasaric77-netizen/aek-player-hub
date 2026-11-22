@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.7";
+var VERSION = "1.8";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -328,13 +328,20 @@ function upsert(name, items, keys) {
 
 /* ------------------------------------------------------------------ reminders by phase (OneSignal push, 22.11.2026)
    Goran: players forget to check in, so every phase gets its own reminder, only to players who have not done it yet.
-   Runs every 10 minutes (setupReminders). Times come from the day's plan (extra_json.session_time, act_time):
-     check_1   1 h 30 before training            no check-in yet       "Check in before training"
-     check_2   30 min before training            still no check-in     "Last call: check in"
-     after_1   2 h 30 after training start       no session effort, or gym/mobility not ticked
-     after_2   20:00                             still missing          "Before the day ends"
-   Match day: check-in before the hotel activation (act_time); after the match nothing (late night), next day's
-   check-in covers it. Day off, injury, national team: no reminders. Nothing between 21:30 and 07:00.
+   Runs every 10 minutes (setupReminders). Times come from the weekly program through the day's plan
+   (extra_json.session_time, time_known, first_call = first duty before training such as video or activation):
+     morning training (before 13:00)
+       check_1   1 h 30 before training, or 1 h before the first duty if earlier
+       check_2   30 min before training, or 15 min before the first duty if earlier
+       after_1   2 h 30 after training start (session effort, gym/mobility not ticked)
+       after_2   20:00
+     afternoon training (from 13:00)
+       check_1   09:30 (check-in stays a morning thing)
+       check_2   1 h before training, or 30 min before the first duty if earlier
+       after_1   2 h after training start;  after_2 21:00
+     time not confirmed in the program: check-in 08:30 and 10:00, after training only 20:00
+     match day: check-in 10:00 (or 1 h before an earlier hotel activation) and 12:30; nothing after the match.
+   Day off, injury, national team: no reminders. Nothing between 21:30 and 07:00.
    A reminder that is due but missed (trigger late) is still sent within 60 minutes, never later.
    Sent reminders are written to sheet "Push" (date, player, phase, ts), so nobody gets the same one twice.
    Needs Script Properties ONESIGNAL_APP_ID and ONESIGNAL_KEY (REST API key, never in code). */
@@ -344,7 +351,10 @@ var PUSH_HEAD = ["date", "player", "phase", "ts"];
 var PUSH_TEXT = {
   check_1: ["Check-in before training", "Training at {t}. Take 20 seconds for your check-in now."],
   check_2: ["Last call: check-in", "Training at {t} and your check-in is still open. Do it now, it changes your day."],
-  match_1: ["Match day check-in", "Activation at {t}. Do your check-in before you leave."],
+  check_1x: ["Morning check-in", "Good morning. Take 20 seconds for your check-in now."],
+  check_2x: ["Last call: check-in", "Your check-in is still open. Do it now, it changes your day."],
+  match_1: ["Match day check-in", "Match day. Take 20 seconds for your check-in now."],
+  match_2: ["Match day: last call", "Your match day check-in is still open. Do it before you leave."],
   after_1: ["After training", "{what} Two taps and today is complete."],
   after_2: ["Before the day ends", "{what} The staff plans tomorrow from it."]
 };
@@ -353,6 +363,8 @@ function minOf(hhmm) {
   var m = /^(\d{1,2}):(\d{2})/.exec(String(hhmm || ""));
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
+
+function hm(min) { return Math.floor(min / 60) + ":" + ("0" + min % 60).slice(-2); }
 
 function pushSheet() {
   var sh = sheet("Push");
@@ -391,15 +403,28 @@ function reminderPlan(date) {
     var mobN = mob && mob.length ? mob.length : 0;
     var gymDone = Object.keys(s.gym || {}).some(function (k) { return s.gym[k] > 0; });
     var mobDone = Object.keys(s.mob || {}).some(function (k) { return s.mob[k] > 0; });
-    var rec = { id: id, time: t ? (Math.floor(t / 60) + ":" + ("0" + t % 60).slice(-2)) : "", due: {} };
+    var known = t && ex.time_known !== false;
+    var pm = known && t >= 13 * 60;
+    var start = minOf(ex.first_call) || t;            // first duty of the day (video, activation), else training
+    if (start && t && start > t) start = t;
+    var rec = { id: id, time: known ? hm(t) : "", due: {} };
     if (!s.checkin) {
       if (match) {
-        var a = minOf(r.act_time) || (t ? t - 300 : null);
-        if (a) { rec.due.match_1 = a - 60; rec.at = Math.floor(a / 60) + ":" + ("0" + a % 60).slice(-2); }
+        // match day: check-in in the morning (10:00), or 1 h before an earlier hotel activation; second call 12:30
+        var a = minOf(r.act_time);
+        rec.due.match_1 = Math.min(10 * 60, a ? a - 60 : 10 * 60);
+        if (12 * 60 + 30 < (a || 24 * 60)) rec.due.match_2 = 12 * 60 + 30;
+      } else if (!known) {
+        rec.due.check_1 = 8 * 60 + 30;                // time not confirmed: morning check-in, no guessing
+        rec.due.check_2 = 10 * 60;
+      } else if (pm) {
+        rec.due.check_1 = 9 * 60 + 30;               // afternoon training: check-in stays a morning thing
+        rec.due.check_2 = Math.min(t - 60, start - 30);
       } else {
-        rec.due.check_1 = t ? t - 90 : 8 * 60 + 30;
-        rec.due.check_2 = t ? t - 30 : 10 * 60;
+        rec.due.check_1 = Math.min(t - 90, start - 60);
+        rec.due.check_2 = Math.min(t - 30, start - 15);
       }
+      if (rec.due.check_2 <= rec.due.check_1) delete rec.due.check_2;
     }
     if (!match) {
       var what = [];
@@ -408,8 +433,9 @@ function reminderPlan(date) {
       if (mobN && !mobDone && !gymSets) what.push("Tick your mobility.");
       if (what.length) {
         rec.what = what.join(" ");
-        if (t) rec.due.after_1 = t + 150;
-        rec.due.after_2 = 20 * 60;
+        if (known) rec.due.after_1 = t + (pm ? 120 : 150);
+        rec.due.after_2 = pm ? 21 * 60 : 20 * 60;
+        if (rec.due.after_1 && rec.due.after_2 - rec.due.after_1 < 60) delete rec.due.after_2;
       }
     }
     out.push(rec);
@@ -430,8 +456,8 @@ function sendReminders() {
       var due = rec.due[phase];
       if (nowMin < due || nowMin > due + 60 || sent[rec.id + "|" + phase]) return;
       if (phase === "check_2" && rec.due.check_1 && !sent[rec.id + "|check_1"] && nowMin <= rec.due.check_1 + 60) return;
-      var txt = PUSH_TEXT[phase];
-      var body = txt[1].replace("{t}", phase === "match_1" ? rec.at : rec.time).replace("{what}", rec.what || "");
+      var txt = PUSH_TEXT[(phase === "check_1" || phase === "check_2") && !rec.time ? phase + "x" : phase];
+      var body = txt[1].replace("{t}", rec.time).replace("{what}", rec.what || "");
       var g = phase + "|" + body;
       (groups[g] = groups[g] || { phase: phase, head: txt[0], body: body, ids: [] }).ids.push(rec.id);
     });
