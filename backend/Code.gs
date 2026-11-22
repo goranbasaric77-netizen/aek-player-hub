@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.6";
+var VERSION = "1.7";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -326,46 +326,155 @@ function upsert(name, items, keys) {
   return items.length;
 }
 
-/* ------------------------------------------------------------------ morning reminder (OneSignal push) */
+/* ------------------------------------------------------------------ reminders by phase (OneSignal push, 22.11.2026)
+   Goran: players forget to check in, so every phase gets its own reminder, only to players who have not done it yet.
+   Runs every 10 minutes (setupReminders). Times come from the day's plan (extra_json.session_time, act_time):
+     check_1   1 h 30 before training            no check-in yet       "Check in before training"
+     check_2   30 min before training            still no check-in     "Last call: check in"
+     after_1   2 h 30 after training start       no session effort, or gym/mobility not ticked
+     after_2   20:00                             still missing          "Before the day ends"
+   Match day: check-in before the hotel activation (act_time); after the match nothing (late night), next day's
+   check-in covers it. Day off, injury, national team: no reminders. Nothing between 21:30 and 07:00.
+   A reminder that is due but missed (trigger late) is still sent within 60 minutes, never later.
+   Sent reminders are written to sheet "Push" (date, player, phase, ts), so nobody gets the same one twice.
+   Needs Script Properties ONESIGNAL_APP_ID and ONESIGNAL_KEY (REST API key, never in code). */
 
 var HUB_URL = "https://goranbasaric77-netizen.github.io/aek-player-hub/";
+var PUSH_HEAD = ["date", "player", "phase", "ts"];
+var PUSH_TEXT = {
+  check_1: ["Check-in before training", "Training at {t}. Take 20 seconds for your check-in now."],
+  check_2: ["Last call: check-in", "Training at {t} and your check-in is still open. Do it now, it changes your day."],
+  match_1: ["Match day check-in", "Activation at {t}. Do your check-in before you leave."],
+  after_1: ["After training", "{what} Two taps and today is complete."],
+  after_2: ["Before the day ends", "{what} The staff plans tomorrow from it."]
+};
 
-/* Sends the 08:30 reminder to active players who have a plan today and no check-in yet.
-   Needs Script Properties ONESIGNAL_APP_ID and ONESIGNAL_KEY (REST API key, never in code). */
-function sendMorningReminder() {
+function minOf(hhmm) {
+  var m = /^(\d{1,2}):(\d{2})/.exec(String(hhmm || ""));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+function pushSheet() {
+  var sh = sheet("Push");
+  if (sh.getLastRow() < 1) sh.appendRow(PUSH_HEAD);
+  return sh;
+}
+
+function sentToday(date) {
+  var sh = pushSheet(), n = sh.getLastRow(), out = {};
+  if (n < 2) return out;
+  sh.getRange(2, 1, n - 1, 3).getValues().forEach(function (r) {
+    if (cellDate(r[0]) === date) out[String(r[1]) + "|" + String(r[2])] = 1;
+  });
+  return out;
+}
+
+/* What each player still has to do today, and when each reminder is due (minutes from midnight, Athens). */
+function reminderPlan(date) {
+  var plan = {}, st = {}, active = {};
+  rows("Players").forEach(function (p) { if (p.role !== "staff" && String(p.active) !== "0") active[String(p.id)] = 1; });
+  rows("Plan").forEach(function (r) { if (cellDate(r.date) === date && active[String(r.player)]) plan[String(r.player)] = r; });
+  var log = {};
+  rows("Log").forEach(function (r) {
+    if (cellDate(r.date) !== date) return;
+    (log[String(r.player)] = log[String(r.player)] || []).push(r);
+  });
+  Object.keys(plan).forEach(function (id) { st[id] = stateFrom(log[id] || []); });
+  var out = [];
+  Object.keys(plan).forEach(function (id) {
+    var r = plan[id], dt = String(r.day_type || ""), ex = jsonOrNull(r.extra_json) || {};
+    if (/Day off|Out of the team plan|National team|Not in training/i.test(dt)) return;
+    var s = st[id], match = !!ex.match_day && /Match/i.test(dt);
+    var t = minOf(ex.session_time) || minOf((/(\d{1,2}:\d{2})/.exec(dt) || [])[1]);
+    var gym = jsonOrNull(r.gym_json), mob = jsonOrNull(r.mobility_json);
+    var gymSets = gym && gym.slots ? gym.slots.reduce(function (a, x) { return a + (x.ex || []).length; }, 0) : 0;
+    var mobN = mob && mob.length ? mob.length : 0;
+    var gymDone = Object.keys(s.gym || {}).some(function (k) { return s.gym[k] > 0; });
+    var mobDone = Object.keys(s.mob || {}).some(function (k) { return s.mob[k] > 0; });
+    var rec = { id: id, time: t ? (Math.floor(t / 60) + ":" + ("0" + t % 60).slice(-2)) : "", due: {} };
+    if (!s.checkin) {
+      if (match) {
+        var a = minOf(r.act_time) || (t ? t - 300 : null);
+        if (a) { rec.due.match_1 = a - 60; rec.at = Math.floor(a / 60) + ":" + ("0" + a % 60).slice(-2); }
+      } else {
+        rec.due.check_1 = t ? t - 90 : 8 * 60 + 30;
+        rec.due.check_2 = t ? t - 30 : 10 * 60;
+      }
+    }
+    if (!match) {
+      var what = [];
+      if (!s.rpe) what.push("Rate your session effort.");
+      if (gymSets && !gymDone) what.push("Tick your gym sets.");
+      if (mobN && !mobDone && !gymSets) what.push("Tick your mobility.");
+      if (what.length) {
+        rec.what = what.join(" ");
+        if (t) rec.due.after_1 = t + 150;
+        rec.due.after_2 = 20 * 60;
+      }
+    }
+    out.push(rec);
+  });
+  return out;
+}
+
+function sendReminders() {
   var props = PropertiesService.getScriptProperties();
   var appId = props.getProperty("ONESIGNAL_APP_ID"), key = props.getProperty("ONESIGNAL_KEY");
   if (!appId || !key) { Logger.log("push: ONESIGNAL_APP_ID ili ONESIGNAL_KEY nije podesen"); return; }
-  var date = dayKey();
-  var planned = {}, done = {};
-  rows("Plan").forEach(function (r) { if (cellDate(r.date) === date) planned[String(r.player)] = 1; });
-  rows("Log").forEach(function (r) { if (cellDate(r.date) === date && r.type === "checkin") done[String(r.player)] = 1; });
-  var ids = rows("Players").filter(function (p) {
-    return p.role !== "staff" && String(p.active) !== "0" && planned[String(p.id)] && !done[String(p.id)];
-  }).map(function (p) { return String(p.id); });
-  if (!ids.length) { Logger.log("push: nikome (nema plana za danas ili su svi uradili check-in)"); return; }
-  var res = UrlFetchApp.fetch("https://api.onesignal.com/notifications?c=push", {
-    method: "post", contentType: "application/json", muteHttpExceptions: true,
-    headers: { Authorization: "Key " + key },
-    payload: JSON.stringify({
-      app_id: appId, target_channel: "push", include_aliases: { external_id: ids },
-      headings: { en: "AEK Player Hub" },
-      contents: { en: "Your plan for today is ready. Check in before training." },
-      url: HUB_URL
-    })
+  var now = new Date(), date = dayKey(now);
+  var nowMin = Number(Utilities.formatDate(now, "Europe/Athens", "H")) * 60 + Number(Utilities.formatDate(now, "Europe/Athens", "m"));
+  if (nowMin < 7 * 60 || nowMin > 21 * 60 + 30) return;
+  var sent = sentToday(date), groups = {}, sh = pushSheet();
+  reminderPlan(date).forEach(function (rec) {
+    Object.keys(rec.due).forEach(function (phase) {
+      var due = rec.due[phase];
+      if (nowMin < due || nowMin > due + 60 || sent[rec.id + "|" + phase]) return;
+      if (phase === "check_2" && rec.due.check_1 && !sent[rec.id + "|check_1"] && nowMin <= rec.due.check_1 + 60) return;
+      var txt = PUSH_TEXT[phase];
+      var body = txt[1].replace("{t}", phase === "match_1" ? rec.at : rec.time).replace("{what}", rec.what || "");
+      var g = phase + "|" + body;
+      (groups[g] = groups[g] || { phase: phase, head: txt[0], body: body, ids: [] }).ids.push(rec.id);
+    });
   });
-  Logger.log("push " + res.getResponseCode() + " za " + ids.length + " igraca: " + res.getContentText().slice(0, 300));
+  Object.keys(groups).forEach(function (g) {
+    var x = groups[g];
+    var res = UrlFetchApp.fetch("https://api.onesignal.com/notifications?c=push", {
+      method: "post", contentType: "application/json", muteHttpExceptions: true,
+      headers: { Authorization: "Key " + key },
+      payload: JSON.stringify({ app_id: appId, target_channel: "push", include_aliases: { external_id: x.ids },
+                                headings: { en: x.head }, contents: { en: x.body }, url: HUB_URL })
+    });
+    var ok = res.getResponseCode() < 300;
+    Logger.log("push " + x.phase + " " + res.getResponseCode() + " za " + x.ids.length + ": " + res.getContentText().slice(0, 200));
+    if (ok) x.ids.forEach(function (id) { sh.appendRow([date, id, x.phase, new Date().toISOString()]); });
+  });
 }
 
-/* Run once from the editor: daily trigger around 08:30 Athens time (Apps Script fires within about 15 minutes). */
+/* Kept for the old daily trigger: the 08:30 reminder is now the check-in phase of sendReminders. */
+function sendMorningReminder() { sendReminders(); }
+
+/* Dry run from the editor: who would get which reminder today and when (nothing is sent). */
+function previewReminders() {
+  var date = dayKey();
+  var lines = reminderPlan(date).map(function (rec) {
+    return rec.id + ": " + Object.keys(rec.due).map(function (p) {
+      var m = rec.due[p]; return p + " " + Math.floor(m / 60) + ":" + ("0" + m % 60).slice(-2);
+    }).join(", ") + (rec.what ? " (" + rec.what + ")" : "");
+  });
+  Logger.log(date + "\n" + lines.join("\n"));
+  return lines;
+}
+
+/* Run once from the editor: reminders every 10 minutes (replaces the old 08:30 trigger). */
 function setupReminders() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === "sendMorningReminder") ScriptApp.deleteTrigger(t);
+    var f = t.getHandlerFunction();
+    if (f === "sendMorningReminder" || f === "sendReminders") ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger("sendMorningReminder").timeBased().atHour(8).nearMinute(30).everyDays(1)
-    .inTimezone("Europe/Athens").create();
-  say("Jutarnji podsetnik je zakazan svaki dan oko 08:30 (Atina).");
+  ScriptApp.newTrigger("sendReminders").timeBased().everyMinutes(10).create();
+  say("Podsetnici po fazama su ukljuceni: provera na svakih 10 minuta (check-in pre treninga, posle treninga, uvece).");
 }
+
 
 /* ------------------------------------------------------------------ history (Progress tab) */
 
