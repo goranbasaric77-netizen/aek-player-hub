@@ -11,7 +11,7 @@
  * Verzija: 1.0 (04.11.2026)
  */
 
-var VERSION = "1.8";
+var VERSION = "1.9";
 /* ID tabele (deo URL-a izmedju /d/ i /edit). Prazan string = skript vezan za tabelu (Extensions > Apps Script). */
 var SHEET_ID = "16DFYiEveVmyC72g3lR94-m7R0yM2u7fYh40rrjKldsw";
 function book() { return SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet(); }
@@ -82,6 +82,7 @@ function doPost(e) {
     if (a === "ping") return out({ ok: true, version: VERSION });
     if (a === "auth") return out(auth(body));
     if (a === "feed") return out(feed(body));
+    if (a === "push_status") return out(pushStatus(body));
     var who = whoIs(body.token);
     if (!who) return out({ ok: false, error: "auth" });
     if (a === "today") return out(today(who, body));
@@ -285,6 +286,29 @@ function readiness(c) {
   var s = keys.reduce(function (a, k) { return a + (Number(c[k]) || 3); }, 0);
   var sleepAdj = Math.max(0, Math.min(1, ((Number(c.hours) || 0) - 5) / 3));
   return Math.round(((s - 5) / 20 * 0.8 + sleepAdj * 0.2) * 100);
+}
+
+/* ------------------------------------------------------------------ push status (staff, platform Planer)
+   22.11.2026 (Goran): Planer shows how many players turned reminders on. The app logs type "push" with its state
+   (on / ask / denied / ios) when it opens and when the state changes; the latest row per player and device counts.
+   A player is "on" when any of his devices last reported "on". Body {action: "push_status", key: staff PIN}. */
+function pushStatus(body) {
+  var staff = rows("Players").filter(function (r) { return r.role === "staff"; })[0];
+  if (!staff || String(body.key || "") !== String(staff.pin)) return { ok: false, error: "key" };
+  var last = {};
+  rows("Log").forEach(function (r) {
+    if (r.type !== "push") return;
+    var k = String(r.player) + "|" + String(r.device || "");
+    var t = new Date(r.ts).getTime() || 0;
+    if (!last[k] || t >= last[k].t) last[k] = { t: t, state: String(r.value || ""), date: cellDate(r.date) };
+  });
+  var out = rows("Players").filter(function (p) { return p.role !== "staff" && String(p.active) !== "0"; }).map(function (p) {
+    var mine = Object.keys(last).filter(function (k) { return k.split("|")[0] === String(p.id); }).map(function (k) { return last[k]; });
+    var on = mine.some(function (x) { return x.state === "on"; });
+    var newest = mine.sort(function (a, b) { return b.t - a.t; })[0];
+    return { player: String(p.id), name: p.name, state: on ? "on" : (newest ? newest.state : "unknown"), seen: newest ? newest.date : "" };
+  });
+  return { ok: true, n_on: out.filter(function (x) { return x.state === "on"; }).length, n: out.length, rows: out };
 }
 
 /* ------------------------------------------------------------------ feed (bridge from GPS 2.5) */

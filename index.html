@@ -1032,10 +1032,13 @@ function pushState(){if(!PUSH_ID||!LIVE)return "off";if(pushIOS()&&!pushStandalo
 function pushCard(){const st=pushState();if(st==="off"||st==="na")return "";
   const txt={ask:["Turn on reminders","One tap and the hub reminds you: check-in before training, session effort and gym after it."],on:["Reminders are on","Check-in before training, session effort and gym after it. Only when something is still open."],denied:["Reminders are blocked","Allow notifications for this site in your browser settings."],ios:["Add the hub to your Home Screen","Share, then Add to Home Screen. Open it from there to turn on reminders."]}[st];
   return `<div class="card pushcard ${st==="on"?"on":""}" id="pushcard"><div class="ic">${ic(st==="on"?"check":"clock",20)}</div><div class="t"><b>${txt[0]}</b><small>${txt[1]}</small></div>${st==="ask"?`<button id="pushon">Turn on</button>`:""}</div>`}
-function pushRefresh(){const c=document.getElementById("pushcard");const n=pushCard();if(c){if(n)c.outerHTML=n;else c.remove()}}
+function pushRefresh(){const c=document.getElementById("pushcard");const n=pushCard();if(c){if(n)c.outerHTML=n;else c.remove()}pushReport()}
+/* 22.11.2026 (Goran): the platform Planer shows how many players have reminders on. Report the state once a day and on every change. */
+function pushReport(){if(!LIVE||!P||P.id==="__staff"||document.body.dataset.staff)return;if(!pushReady&&!(pushIOS()&&!pushStandalone()))return;
+  const st=pushState();if(st==="off"||st==="na")return;const k="pushrep:"+P.id,o=load(k,null);if(o&&o.s===st&&o.d===TK)return;save(k,{s:st,d:TK});enqueue("push","state",st)}
 document.addEventListener("click",e=>{if(!e.target.closest("#pushon"))return;
   if(!pushReady){toast("One moment, reminders are loading.");return}
-  OneSignalDeferred.push(async OS=>{try{await OS.Notifications.requestPermission();if(P&&P.id)await OS.login(P.id)}catch(err){}pushRefresh();if(pushState()==="on")toast("Reminders on. See you at 08:30.")})});
+  OneSignalDeferred.push(async OS=>{try{await OS.Notifications.requestPermission();if(P&&P.id)await OS.login(P.id)}catch(err){}pushRefresh();if(pushState()==="on")toast("Reminders on. The hub will remind you before and after training.")})});
 
 document.addEventListener("DOMContentLoaded",()=>{pushInit();const last=load("last",null);
 if(LIVE&&last&&tokenOf(last)&&(last==="__staff"||PLAYERS.find(p=>p.id===last)))enter(last);
@@ -1270,7 +1273,7 @@ async function tryEnter(id){if(!LIVE){enter(id);return}const pid=id;
     if(j.ok){save("tok:"+pid,j.token);enter(id)}
     else{pinBuf="";drawDots();const dd=document.getElementById("dots");dd.classList.add("err");setTimeout(()=>dd.classList.remove("err"),500);toast(j.error==="pin"?"Wrong PIN. Try again.":"Not on the hub list yet. Ask the staff.")}}
   catch(e){if(tokenOf(pid)){toast("No connection. Showing saved data.");enter(id)}else{pinBuf="";drawDots();toast("No connection. Try again when you are online.")}}}
-function afterEnter(){if(!LIVE)return;enqueue("open","today","");syncToday();if(P)pushLogin(P.id)}
+function afterEnter(){if(!LIVE)return;enqueue("open","today","");syncToday();if(P){pushLogin(P.id);pushReport()}}
 /* Plan row from the server replaces the sketch content of this player. */
 function applyPlan(p,pl){if(!pl)return;p.dayType=pl.dayType||p.dayType;p.modeLabel=pl.modeLabel||p.modeLabel;p.sub=pl.sub||"";p.focus=pl.focus||"";
   p.pitch=pl.pitch&&pl.pitch.td?Object.assign({note:"Targets come from your own GPS reference."},pl.pitch):null;
