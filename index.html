@@ -998,7 +998,15 @@ function drawDemo(){document.getElementById("demo-l").textContent=demoAfter?"aft
 document.getElementById("demo").onclick=()=>{demoAfter=!demoAfter;save("demoAfter",demoAfter);drawDemo();if(P)renderAll();else if(document.body.dataset.staff)show("team")};
 drawDemo();if(LIVE)document.getElementById("demo").classList.add("hidden");
 /* New release: check for a new service worker on every open and when the app comes back to the screen; when the new one takes over, reload once so the player sees the new version immediately. */
-if("serviceWorker" in navigator&&location.protocol.startsWith("http")){const swHad=!!navigator.serviceWorker.controller;let swReloaded=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(swHad&&!swReloaded){swReloaded=true;location.reload()}});navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{reg.update().catch(()=>{});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update().catch(()=>{})})}).catch(()=>{})}
+/* 23.11.2026 fix (iPhone reload loop): with reminders on, OneSignal registers sw.js with its own query (?appId=...). If the app
+   also registered plain sw.js, every open swapped the worker, controllerchange fired and the page reloaded, again and again.
+   Now: when OneSignal is configured it alone registers the worker (sw.js holds both push and cache) and the app never
+   auto-reloads; the page itself is network-first, so a new release still shows on the next open. */
+if("serviceWorker" in navigator&&location.protocol.startsWith("http")){const swPush=!!String((window.AEK_SYNC||{}).onesignal||"").trim();const swHad=!!navigator.serviceWorker.controller;let swReloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(swHad&&!swReloaded&&!swPush){swReloaded=true;location.reload()}});
+  const swWatch=reg=>{if(!reg)return;reg.update().catch(()=>{});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update().catch(()=>{})})};
+  if(swPush)navigator.serviceWorker.getRegistration().then(swWatch).catch(()=>{});
+  else navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(swWatch).catch(()=>{})}
 
 /* ---------- login ---------- */
 document.getElementById("login-tri").innerHTML=triple([100,100,100],92,`<span style="font-size:26px">3</span><small>rings</small>`);
